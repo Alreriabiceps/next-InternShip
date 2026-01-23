@@ -63,6 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Skip auth check if we're already on the login page (prevents unnecessary 401 errors)
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/login')) {
+      setLoading(false);
+      setHasChecked(true);
+      return;
+    }
+    
     if (!hasChecked) {
       checkAuth();
     }

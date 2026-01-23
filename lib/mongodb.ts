@@ -7,6 +7,9 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable');
 }
 
+// TypeScript assertion: we've checked above that MONGODB_URI exists
+const MONGODB_URI_STRING: string = MONGODB_URI;
+
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -34,7 +37,7 @@ async function connectDB() {
       socketTimeoutMS: 45000, // 45 seconds socket timeout
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI_STRING, opts).then((mongoose) => {
       return mongoose;
     }).catch((error) => {
       cached.promise = null;

@@ -1,0 +1,171 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import api from '@/lib/api';
+import StatCard from '@/components/dashboard/StatCard';
+import { 
+  Users, 
+  ClipboardCheck, 
+  Clock, 
+  FileText, 
+  CheckCircle2,
+  ArrowRight,
+  Activity
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+
+interface Stats {
+  totalInterns: number;
+  totalLogs: number;
+  recentLogs: number;
+  todayLogs: number;
+  completeLogs: number;
+}
+
+export default function DashboardPage() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/stats');
+      setStats(response.data.stats);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statCards = [
+    {
+      title: 'Total Interns',
+      value: stats?.totalInterns ?? (loading ? '...' : 0),
+      href: '/main/intern',
+      icon: Users,
+      trend: '+2.4%',
+      trendType: 'positive' as const,
+    },
+    {
+      title: 'Total Logs',
+      value: stats?.totalLogs ?? (loading ? '...' : 0),
+      href: '/main/logs',
+      icon: FileText,
+      trend: '+12%',
+      trendType: 'positive' as const,
+    },
+    {
+      title: "Today's Logs",
+      value: stats?.todayLogs ?? (loading ? '...' : 0),
+      href: '/main/logs',
+      icon: Clock,
+      trend: 'On track',
+      trendType: 'neutral' as const,
+    },
+    {
+      title: 'Complete Logs',
+      value: stats?.completeLogs ?? (loading ? '...' : 0),
+      href: '/main/logs',
+      icon: CheckCircle2,
+      trend: '98% accuracy',
+      trendType: 'positive' as const,
+    },
+    {
+      title: 'Recent Activity',
+      value: stats?.recentLogs ?? (loading ? '...' : 0),
+      href: '/main/logs',
+      icon: Activity,
+      trend: 'Last 7 days',
+      trendType: 'neutral' as const,
+    },
+  ];
+
+  return (
+    <div className="space-y-10">
+      <section>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+              Overview
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Real-time monitoring of intern activities and daily submissions.
+            </p>
+          </div>
+          <button 
+            onClick={fetchStats}
+            className="mac-button-primary flex items-center space-x-2"
+          >
+            <Clock className="w-4 h-4" />
+            <span>Refresh Stats</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {statCards.map((card, index) => (
+            <StatCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              href={card.href}
+              icon={card.icon}
+              trend={card.trend}
+              trendType={card.trendType}
+            />
+          ))}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <section className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+              System Health
+            </h2>
+          </div>
+          <div className="mac-card p-8 min-h-[300px] flex items-center justify-center bg-white/40 backdrop-blur-sm border-dashed border-2 border-black/5">
+            <div className="text-center">
+              <Activity className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-400 font-medium">Activity Chart Placeholder</p>
+              <p className="text-xs text-gray-400 mt-1">Detailed metrics will appear here.</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">
+              Quick Actions
+            </h2>
+          </div>
+          <div className="space-y-4">
+            {[
+              { title: 'Add New Intern', icon: Users, href: '/main/intern' },
+              { title: 'Review Pending Logs', icon: ClipboardCheck, href: '/main/logs' },
+              { title: 'Export Data', icon: FileText, href: '#' },
+            ].map((action) => (
+              <motion.button
+                key={action.title}
+                whileHover={{ x: 5 }}
+                className="w-full flex items-center justify-between p-4 mac-card hover:bg-macos-blue hover:text-white group transition-all duration-300"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-macos-blue/10 group-hover:bg-white/20 flex items-center justify-center transition-colors">
+                    <action.icon className="w-5 h-5 text-macos-blue group-hover:text-white" />
+                  </div>
+                  <span className="font-semibold text-sm">{action.title}</span>
+                </div>
+                <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />
+              </motion.button>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

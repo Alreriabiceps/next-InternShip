@@ -1,0 +1,48 @@
+{
+  "name": "intern-admin-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed": "tsx scripts/seed-admin.ts"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.7",
+    "@heroicons/react": "^2.1.1",
+    "@react-google-maps/api": "^2.19.3",
+    "autoprefixer": "^10.4.16",
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.0.6",
+    "dotenv": "^17.2.3",
+    "framer-motion": "^12.29.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.563.0",
+    "mongodb": "^6.3.0",
+    "mongoose": "^8.0.3",
+    "next": "^16.1.1",
+    "postcss": "^8.4.32",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "recharts": "^2.10.3",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^3.3.6"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^16.1.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.3"
+  }
+}

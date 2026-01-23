@@ -49,12 +49,16 @@ export async function POST(request: NextRequest) {
     );
 
     // Set HTTP-only cookie
+    // On Vercel, always use secure cookies (HTTPS)
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
+      secure: isProduction,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
+      // Don't set domain - let it default to the current domain (works on Vercel)
     });
 
     return response;

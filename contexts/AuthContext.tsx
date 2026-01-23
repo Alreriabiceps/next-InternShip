@@ -48,8 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setHasChecked(true);
       
       // Only redirect if we're not already on login page and it's an auth error
+      // Don't redirect if we're already on the login page (prevents redirect loops)
       if (isUnauthorized && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
         router.push('/login');
+      }
+      
+      // Silently handle 401 errors - they're expected when not authenticated
+      if (!isUnauthorized) {
+        console.error('Auth check error:', error);
       }
     } finally {
       setLoading(false);

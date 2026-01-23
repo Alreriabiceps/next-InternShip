@@ -31,7 +31,10 @@ export default function ListContainer({
 }: ListContainerProps) {
   const containerVariants = {
     hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] } }
+    visible: { 
+      opacity: 1, 
+      y: 0
+    }
   };
 
   const renderContent = () => {
@@ -69,6 +72,7 @@ export default function ListContainer({
       initial="hidden"
       animate="visible"
       variants={containerVariants}
+      transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
       className={cn(
         "mac-card overflow-hidden",
         className

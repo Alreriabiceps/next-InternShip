@@ -50,7 +50,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
 
   // Initialize Leaflet map
   useEffect(() => {
-    if (typeof window === 'undefined' || !isOpen || !mapRef.current) return;
+    if (typeof window === 'undefined' || !isOpen || !mapRef.current || !log) return;
 
     const currentLog = activeTab === 'AM' ? log.amLog : log.pmLog;
     if (!currentLog) return;
@@ -95,10 +95,14 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
       }
 
       function createMap() {
-        if (!mapRef.current || !(window as any).L) return;
+        if (!mapRef.current || !(window as any).L || !log) return;
+        
+        // Re-check currentLog since this function might be called asynchronously
+        const logData = activeTab === 'AM' ? log.amLog : log.pmLog; 
+        if (!logData) return;
         
         const map = (window as any).L.map(mapRef.current).setView(
-          [currentLog.location.latitude, currentLog.location.longitude],
+          [logData.location.latitude, logData.location.longitude],
           15
         );
         
@@ -107,7 +111,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
           maxZoom: 19
         }).addTo(map);
         
-        (window as any).L.marker([currentLog.location.latitude, currentLog.location.longitude]).addTo(map);
+        (window as any).L.marker([logData.location.latitude, logData.location.longitude]).addTo(map);
         
         mapInstanceRef.current = map;
       }

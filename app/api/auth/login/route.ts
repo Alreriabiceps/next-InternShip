@@ -62,10 +62,26 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
+    
+    // Provide more specific error messages for debugging
+    let errorMessage = 'Internal server error';
+    
+    if (error.message?.includes('MONGODB_URI')) {
+      errorMessage = 'Database configuration error';
+    } else if (error.message?.includes('JWT_SECRET')) {
+      errorMessage = 'Authentication configuration error';
+    } else if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      errorMessage = 'Database connection error';
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: errorMessage,
+        // Only include details in development
+        ...(process.env.NODE_ENV === 'development' && { details: error.message })
+      },
       { status: 500 }
     );
   }

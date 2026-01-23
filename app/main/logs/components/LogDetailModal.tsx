@@ -96,11 +96,11 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
         if (!mapRef.current || !(window as any).L || !log) return;
         
         // Re-check currentLog since this function might be called asynchronously
-        const logData = activeTab === 'AM' ? log.amLog : log.pmLog; 
-        if (!logData) return;
+        const currentLogData = activeTab === 'AM' ? log.amLog : log.pmLog; 
+        if (!currentLogData) return;
         
         const map = (window as any).L.map(mapRef.current).setView(
-          [logData.location.latitude, logData.location.longitude],
+          [currentLogData.location.latitude, currentLogData.location.longitude],
           15
         );
         
@@ -109,7 +109,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
           maxZoom: 19
         }).addTo(map);
         
-        (window as any).L.marker([logData.location.latitude, logData.location.longitude]).addTo(map);
+        (window as any).L.marker([currentLogData.location.latitude, currentLogData.location.longitude]).addTo(map);
         
         mapInstanceRef.current = map;
       }
@@ -148,6 +148,12 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
     </div>
   );
 
+  // Early return after all hooks (React rules)
+  if (!log) return null;
+
+  // TypeScript assertion: log is guaranteed to be non-null after the check above
+  const logData: NonNullable<typeof log> = log;
+
   const renderImageLog = (imageLog: ImageLog | undefined, period: 'AM' | 'PM') => {
     if (!imageLog) {
       return (
@@ -161,6 +167,8 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
       );
     }
 
+    // TypeScript now knows log is not null because of the early return above
+    const currentLog = log;
 
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -227,10 +235,10 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
             {imageLog.activityType && (
               <DetailItem label="Activity Type" value={imageLog.activityType} />
             )}
-            {period === 'AM' && log.pmLog && (
+            {period === 'AM' && currentLog.pmLog && (
               <DetailItem 
                 label="Total Duration" 
-                value={`${((new Date(log.pmLog.timestamp).getTime() - new Date(imageLog.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1)} hours`}
+                value={`${((new Date(currentLog.pmLog.timestamp).getTime() - new Date(imageLog.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1)} hours`}
                 subValue="Calculated from AM to PM"
               />
             )}
@@ -301,9 +309,6 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
     );
   };
 
-  // Early return after all hooks (React rules)
-  if (!log) return null;
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -329,14 +334,14 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-                    {format(new Date(log.date), 'PPPP')}
+                    {format(new Date(logData.date), 'PPPP')}
                   </h3>
                   <div className="flex items-center mt-1 space-x-3">
                     <span className="text-sm font-semibold text-gray-500 flex items-center">
-                      <User className="w-3.5 h-3.5 mr-1.5" /> {log.internId.name}
+                      <User className="w-3.5 h-3.5 mr-1.5" /> {logData.internId.name}
                     </span>
                     <span className="w-1 h-1 rounded-full bg-gray-300" />
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{log.internId.studentId}</span>
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{logData.internId.studentId}</span>
                   </div>
                 </div>
               </div>
@@ -384,7 +389,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                   exit={{ opacity: 0, x: activeTab === 'AM' ? 20 : -20 }}
                   transition={{ duration: 0.3, ease: "easeOut" }}
                 >
-                  {renderImageLog(activeTab === 'AM' ? log.amLog : log.pmLog, activeTab)}
+                  {renderImageLog(activeTab === 'AM' ? logData.amLog : logData.pmLog, activeTab)}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -398,10 +403,10 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                 </div>
                 <div className="flex items-center">
                   <Globe className="w-3.5 h-3.5 mr-1.5" />
-                  Origin: {log.amLog?.ipAddress || log.pmLog?.ipAddress || 'Unknown'}
+                  Origin: {logData.amLog?.ipAddress || logData.pmLog?.ipAddress || 'Unknown'}
                 </div>
               </div>
-              <div>ID: {log._id}</div>
+              <div>ID: {logData._id}</div>
             </div>
           </motion.div>
         </div>

@@ -42,8 +42,6 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
 
-  if (!log) return null;
-
   const googleMapsUrl = (lat: number, lng: number) => {
     return `https://www.google.com/maps?q=${lat},${lng}`;
   };
@@ -302,6 +300,9 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
       </div>
     );
   };
+
+  // Early return after all hooks (React rules)
+  if (!log) return null;
 
   return (
     <AnimatePresence>

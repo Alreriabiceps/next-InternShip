@@ -6,6 +6,8 @@ import {
   LayoutDashboard, 
   Users, 
   ClipboardList, 
+  Calendar as CalendarIcon,
+  FileText,
   Settings, 
   LogOut,
   ChevronRight
@@ -22,6 +24,8 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Interns', href: '/main/intern', icon: Users },
   { name: 'Daily Logs', href: '/main/logs', icon: ClipboardList },
+  { name: 'Calendar', href: '/main/calendar', icon: CalendarIcon },
+  { name: 'Reports', href: '/main/reports', icon: FileText },
 ];
 
 const secondaryNavigation = [
@@ -35,14 +39,13 @@ export default function Sidebar() {
     <aside className="w-64 h-screen flex flex-col mac-sidebar sticky top-0 left-0 z-40 transition-all duration-300 ease-in-out shadow-[1px_0_10px_rgba(0,0,0,0.02)]">
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-10 pl-1">
-          <div className="relative w-9 h-9 flex items-center justify-center">
-            <Image 
-              src="/logo.png" 
-              alt="InternShip" 
-              fill 
-              className="object-contain drop-shadow-sm"
-            />
-          </div>
+          <Image 
+            src="/logo.png" 
+            alt="InternShip" 
+            width={48}
+            height={48}
+            className="object-cover drop-shadow-sm"
+          />
           <h1 className="text-xl font-bold tracking-tight text-gray-900">
             InternShip
           </h1>

@@ -38,6 +38,17 @@ export interface IImageLog {
     temperature?: number;
     conditions?: string;
   };
+  // New metrics
+  sessionDuration?: number; // Time in app before submission (seconds)
+  timeSinceLastLog?: number; // Time since last log entry (seconds)
+  deviceOrientation?: 'portrait' | 'landscape';
+  wifiSSID?: string;
+  signalStrength?: number;
+  networkSpeed?: number; // in Mbps
+  screenBrightness?: number; // 0-100
+  availableStorage?: number; // in bytes
+  captureTime?: number; // Time from opening camera to submission (seconds)
+  retakeCount?: number;
 }
 
 export interface IDailyLog extends Document {
@@ -175,6 +186,46 @@ const ImageLogSchema: Schema = new Schema({
   },
   weatherData: {
     type: WeatherDataSchema,
+  },
+  // New metrics
+  sessionDuration: {
+    type: Number,
+    min: 0,
+  },
+  timeSinceLastLog: {
+    type: Number,
+    min: 0,
+  },
+  deviceOrientation: {
+    type: String,
+    enum: ['portrait', 'landscape'],
+  },
+  wifiSSID: {
+    type: String,
+  },
+  signalStrength: {
+    type: Number,
+  },
+  networkSpeed: {
+    type: Number,
+    min: 0,
+  },
+  screenBrightness: {
+    type: Number,
+    min: 0,
+    max: 100,
+  },
+  availableStorage: {
+    type: Number,
+    min: 0,
+  },
+  captureTime: {
+    type: Number,
+    min: 0,
+  },
+  retakeCount: {
+    type: Number,
+    min: 0,
   },
 }, { _id: false });
 

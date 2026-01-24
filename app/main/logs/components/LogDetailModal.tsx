@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { DailyLog, ImageLog } from '../types';
@@ -22,7 +23,8 @@ import {
   Battery, 
   Globe, 
   XCircle,
-  User
+  User,
+  Activity
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -161,7 +163,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <XCircle className="w-8 h-8 text-gray-300" />
           </div>
-          <h3 className="text-lg font-bold text-gray-400">No {period} Entry</h3>
+          <h3 className="text-lg font-bold text-gray-400">No {period === 'AM' ? 'Time In' : 'Time Out'} Entry</h3>
           <p className="text-sm text-gray-400 mt-1 text-center max-w-[200px]">The intern has not submitted a log for this period yet.</p>
         </div>
       );
@@ -194,7 +196,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
             <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
               <div className="flex items-center text-white space-x-2">
                 <Clock className="w-4 h-4 opacity-70" />
-                <span className="text-sm font-bold">{format(new Date(imageLog.timestamp), 'h:mm:ss a')}</span>
+                <span className="text-sm font-bold">{format(new Date(imageLog.timestamp), 'h:mm a')}</span>
               </div>
             </div>
           </div>
@@ -205,11 +207,18 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
               className="w-full h-full"
               style={{ zIndex: 0 }}
             />
-            <div className="absolute top-4 left-4 p-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-black/5 flex items-center space-x-2 max-w-[80%] z-10 pointer-events-none">
-              <MapPin className="w-4 h-4 text-macos-blue flex-shrink-0" />
-              <span className="text-[11px] font-bold text-gray-700 truncate leading-none">
-                {imageLog.location.address || 'Location Coordinates Pinpointed'}
-              </span>
+            <div className="absolute top-4 left-4 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-black/10 z-10 pointer-events-none max-w-[90%]">
+              <div className="flex items-start space-x-2">
+                <MapPin className="w-4 h-4 text-macos-blue flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[12px] font-bold text-gray-900 leading-tight block">
+                    {imageLog.location.address || 'Location Coordinates Pinpointed'}
+                  </span>
+                  <span className="text-[10px] font-semibold text-gray-600 mt-1 block">
+                    {imageLog.location.latitude.toFixed(6)}, {imageLog.location.longitude.toFixed(6)}
+                  </span>
+                </div>
+              </div>
             </div>
             <a
               href={googleMapsUrl(imageLog.location.latitude, imageLog.location.longitude)}
@@ -226,8 +235,12 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
         <div className="space-y-6">
           <DetailSection title="Activity Details" icon={Clock}>
             <DetailItem 
-              label="Submission Time" 
-              value={format(new Date(imageLog.timestamp), 'PPpp')} 
+              label="Date" 
+              value={format(new Date(imageLog.timestamp), 'MMMM d, yyyy')} 
+            />
+            <DetailItem 
+              label="Time" 
+              value={format(new Date(imageLog.timestamp), 'h:mm a')} 
             />
             {imageLog.hoursWorked !== undefined && (
               <DetailItem label="Reported Hours" value={`${imageLog.hoursWorked} hours`} />
@@ -235,18 +248,15 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
             {imageLog.activityType && (
               <DetailItem label="Activity Type" value={imageLog.activityType} />
             )}
-            {period === 'AM' && currentLog.pmLog && (
-              <DetailItem 
-                label="Total Duration" 
-                value={`${((new Date(currentLog.pmLog.timestamp).getTime() - new Date(imageLog.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1)} hours`}
-                subValue="Calculated from AM to PM"
-              />
-            )}
           </DetailSection>
 
-          <DetailSection title="Location Accuracy" icon={MapPin}>
+          <DetailSection title="Exact Location" icon={MapPin}>
             <DetailItem 
-              label="Coordinates" 
+              label="Full Address" 
+              value={imageLog.location.address || 'Address not available'} 
+            />
+            <DetailItem 
+              label="Coordinates (Lat, Long)" 
               value={`${imageLog.location.latitude.toFixed(6)}, ${imageLog.location.longitude.toFixed(6)}`} 
             />
             <DetailItem 
@@ -271,11 +281,85 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
               label="Network Status" 
               value={imageLog.networkType || 'Unknown'}
             />
+            {imageLog.wifiSSID && (
+              <DetailItem 
+                label="WiFi Network" 
+                value={imageLog.wifiSSID}
+              />
+            )}
+            {imageLog.signalStrength !== undefined && (
+              <DetailItem 
+                label="Signal Strength" 
+                value={`${imageLog.signalStrength} dBm`}
+              />
+            )}
+            {imageLog.networkSpeed !== undefined && (
+              <DetailItem 
+                label="Network Speed" 
+                value={`${imageLog.networkSpeed.toFixed(2)} Mbps`}
+              />
+            )}
             <DetailItem 
               label="Battery Level" 
               value={imageLog.batteryLevel !== undefined ? `${imageLog.batteryLevel}%` : 'N/A'} 
             />
-            <DetailItem label="IP Address" value={<span className="font-mono text-[11px]">{imageLog.ipAddress || 'Not logged'}</span>} />
+            {imageLog.deviceOrientation && (
+              <DetailItem 
+                label="Device Orientation" 
+                value={imageLog.deviceOrientation === 'portrait' ? 'Portrait' : 'Landscape'}
+              />
+            )}
+            {imageLog.availableStorage !== undefined && (
+              <DetailItem 
+                label="Available Storage" 
+                value={`${(imageLog.availableStorage / (1024 * 1024 * 1024)).toFixed(2)} GB`}
+              />
+            )}
+            {imageLog.screenBrightness !== undefined && (
+              <DetailItem 
+                label="Screen Brightness" 
+                value={`${imageLog.screenBrightness}%`}
+              />
+            )}
+            <DetailItem 
+              label="IP Address" 
+              value={imageLog.ipAddress || 'Not logged'}
+            />
+          </DetailSection>
+
+          <DetailSection title="Activity Metrics" icon={Activity}>
+            {imageLog.sessionDuration !== undefined && (
+              <DetailItem 
+                label="Session Duration" 
+                value={`${Math.floor(imageLog.sessionDuration / 60)}m ${imageLog.sessionDuration % 60}s`}
+                subValue="Time in app before submission"
+              />
+            )}
+            {imageLog.timeSinceLastLog !== undefined && (
+              <DetailItem 
+                label="Time Since Last Log" 
+                value={imageLog.timeSinceLastLog < 60 
+                  ? `${imageLog.timeSinceLastLog}s`
+                  : imageLog.timeSinceLastLog < 3600
+                  ? `${Math.floor(imageLog.timeSinceLastLog / 60)}m`
+                  : `${Math.floor(imageLog.timeSinceLastLog / 3600)}h ${Math.floor((imageLog.timeSinceLastLog % 3600) / 60)}m`
+                }
+                subValue="Activity pattern indicator"
+              />
+            )}
+            {imageLog.captureTime !== undefined && (
+              <DetailItem 
+                label="Capture Time" 
+                value={`${imageLog.captureTime}s`}
+                subValue="Time from opening camera to submission"
+              />
+            )}
+            {imageLog.retakeCount !== undefined && imageLog.retakeCount > 0 && (
+              <DetailItem 
+                label="Photo Retakes" 
+                value={`${imageLog.retakeCount} ${imageLog.retakeCount === 1 ? 'retake' : 'retakes'}`}
+              />
+            )}
           </DetailSection>
 
           <DetailSection title="Environment & Media" icon={Cloud}>
@@ -310,108 +394,157 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 40 }}
-            className="relative w-full max-w-6xl max-h-[90vh] bg-[#F2F2F7] rounded-[40px] shadow-[0_32px_128px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col"
-          >
-            {/* Header */}
-            <div className="px-10 py-8 bg-white/50 backdrop-blur-xl border-b border-black/5 flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <div className="w-14 h-14 bg-macos-blue rounded-[20px] shadow-lg shadow-macos-blue/20 flex items-center justify-center">
-                  <Calendar className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-                    {format(new Date(logData.date), 'PPPP')}
-                  </h3>
-                  <div className="flex items-center mt-1 space-x-3">
-                    <span className="text-sm font-semibold text-gray-500 flex items-center">
-                      <User className="w-3.5 h-3.5 mr-1.5" /> {logData.internId.name}
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-gray-300" />
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{logData.internId.studentId}</span>
-                  </div>
-                </div>
-              </div>
-              <button
+    <>
+      {typeof window !== 'undefined' && isOpen && (
+        <>
+          {createPortal(
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="p-3 bg-black/5 hover:bg-black/10 rounded-full transition-all active:scale-90"
+                className="fixed inset-0 bg-black/60 backdrop-blur-md"
+                style={{ 
+                  position: 'fixed', 
+                  top: 0, 
+                  left: 0, 
+                  right: 0, 
+                  bottom: 0, 
+                  width: '100vw', 
+                  height: '100vh',
+                  zIndex: 100
+                }}
+              />
+            </AnimatePresence>,
+            document.body
+          )}
+          {createPortal(
+            <AnimatePresence>
+              <div 
+                className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none"
+                style={{ 
+                  position: 'fixed', 
+                  top: 0, 
+                  left: 0, 
+                  right: 0, 
+                  bottom: 0, 
+                  width: '100vw', 
+                  height: '100vh',
+                  zIndex: 101
+                }}
               >
-                <X className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className="px-10 py-4 flex space-x-2 bg-black/[0.02] border-b border-black/5">
-              <button
-                onClick={() => setActiveTab('AM')}
-                className={cn(
-                  "px-6 py-2 rounded-xl text-sm font-bold transition-all",
-                  activeTab === 'AM' 
-                    ? "bg-macos-blue text-white shadow-lg shadow-macos-blue/20" 
-                    : "text-gray-500 hover:bg-black/5"
-                )}
-              >
-                Morning Entry (AM)
-              </button>
-              <button
-                onClick={() => setActiveTab('PM')}
-                className={cn(
-                  "px-6 py-2 rounded-xl text-sm font-bold transition-all",
-                  activeTab === 'PM' 
-                    ? "bg-macos-blue text-white shadow-lg shadow-macos-blue/20" 
-                    : "text-gray-500 hover:bg-black/5"
-                )}
-              >
-                Afternoon Entry (PM)
-              </button>
-            </div>
-
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
-              <AnimatePresence mode="wait">
                 <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, x: activeTab === 'AM' ? -20 : 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: activeTab === 'AM' ? 20 : -20 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  initial={{ opacity: 0, scale: 0.95, y: 40 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 40 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="relative w-full max-w-6xl max-h-[90vh] bg-[#F2F2F7] rounded-[40px] shadow-[0_32px_128px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col pointer-events-auto"
                 >
-                  {renderImageLog(activeTab === 'AM' ? logData.amLog : logData.pmLog, activeTab)}
-                </motion.div>
-              </AnimatePresence>
-            </div>
+                  {/* Header */}
+                  <div className="px-10 py-8 bg-white/50 backdrop-blur-xl border-b border-black/5 flex items-center justify-between">
+                    <div className="flex items-center space-x-6">
+                      <div className="w-14 h-14 bg-macos-blue rounded-[20px] shadow-lg shadow-macos-blue/20 flex items-center justify-center">
+                        <Calendar className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
+                          {format(new Date(logData.date), 'PPPP')}
+                        </h3>
+                        <div className="flex items-center mt-1 space-x-3">
+                          <span className="text-sm font-semibold text-gray-500 flex items-center">
+                            <User className="w-3.5 h-3.5 mr-1.5" /> {logData.internId.name}
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-gray-300" />
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{logData.internId.studentId}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="p-3 bg-black/5 hover:bg-black/10 rounded-full transition-all active:scale-90"
+                    >
+                      <X className="w-6 h-6 text-gray-500" />
+                    </button>
+                  </div>
 
-            {/* Footer Information */}
-            <div className="px-10 py-6 bg-white/30 backdrop-blur-xl border-t border-black/5 flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center">
-                  <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-macos-green" />
-                  System Verified Log
-                </div>
-                <div className="flex items-center">
-                  <Globe className="w-3.5 h-3.5 mr-1.5" />
-                  Origin: {logData.amLog?.ipAddress || logData.pmLog?.ipAddress || 'Unknown'}
-                </div>
+                  {/* Tab Navigation with Total Duration */}
+                  <div className="px-10 py-4 flex items-center justify-between bg-black/[0.02] border-b border-black/5">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setActiveTab('AM')}
+                        className={cn(
+                          "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                          activeTab === 'AM' 
+                            ? "bg-macos-blue text-white shadow-lg shadow-macos-blue/20" 
+                            : "text-gray-500 hover:bg-black/5"
+                        )}
+                      >
+                        Time In
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('PM')}
+                        className={cn(
+                          "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                          activeTab === 'PM' 
+                            ? "bg-macos-blue text-white shadow-lg shadow-macos-blue/20" 
+                            : "text-gray-500 hover:bg-black/5"
+                        )}
+                      >
+                        Time Out
+                      </button>
+                    </div>
+                    {/* Total Duration - Only show when PM log exists */}
+                    {logData.amLog && logData.pmLog && (
+                      <div className="flex items-center space-x-2 px-4 py-2 bg-macos-blue/10 rounded-xl">
+                        <Clock className="w-4 h-4 text-macos-blue" />
+                        <div className="flex items-baseline space-x-1">
+                          <span className="text-xs font-semibold text-gray-600">Total:</span>
+                          <span className="text-sm font-bold text-gray-900">
+                            {((new Date(logData.pmLog.timestamp).getTime() - new Date(logData.amLog.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1)}h
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content Area */}
+                  <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, x: activeTab === 'AM' ? -20 : 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: activeTab === 'AM' ? 20 : -20 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                      >
+                        {renderImageLog(activeTab === 'AM' ? logData.amLog : logData.pmLog, activeTab)}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Footer Information */}
+                  <div className="px-10 py-6 bg-white/30 backdrop-blur-xl border-t border-black/5 flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-macos-green" />
+                        System Verified Log
+                      </div>
+                      <div className="flex items-center">
+                        <Globe className="w-3.5 h-3.5 mr-1.5" />
+                        Origin: {logData.amLog?.ipAddress || logData.pmLog?.ipAddress || 'Unknown'}
+                      </div>
+                    </div>
+                    <div>ID: {logData._id}</div>
+                  </div>
+                </motion.div>
               </div>
-              <div>ID: {logData._id}</div>
-            </div>
-          </motion.div>
-        </div>
+            </AnimatePresence>,
+            document.body
+          )}
+        </>
       )}
-    </AnimatePresence>
+    </>
   );
 }
 

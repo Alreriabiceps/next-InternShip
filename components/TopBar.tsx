@@ -2,7 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, Bell, User } from 'lucide-react';
+import { Bell, User } from 'lucide-react';
+import GlobalSearch from './GlobalSearch';
 
 export default function TopBar() {
   const pathname = usePathname();
@@ -12,6 +13,8 @@ export default function TopBar() {
     if (path === '/dashboard') return 'Overview';
     if (path.startsWith('/main/intern')) return 'Intern Profiles';
     if (path.startsWith('/main/logs')) return 'Activity Logs';
+    if (path.startsWith('/main/calendar')) return 'Calendar View';
+    if (path.startsWith('/main/reports')) return 'Reports';
     if (path === '/profile') return 'Account Settings';
     return 'Management';
   };
@@ -25,13 +28,8 @@ export default function TopBar() {
       </div>
 
       <div className="flex items-center space-x-5">
-        <div className="hidden md:flex items-center bg-black/[0.03] rounded-2xl px-4 py-2 focus-within:ring-2 focus-within:ring-macos-blue/30 transition-all border border-black/5">
-          <Search className="w-4 h-4 text-gray-400 mr-2.5" />
-          <input 
-            type="text" 
-            placeholder="Quick search..." 
-            className="bg-transparent border-none outline-none text-[13px] font-medium w-48 text-gray-700 placeholder:text-gray-400"
-          />
+        <div className="hidden md:block w-80">
+          <GlobalSearch />
         </div>
 
         <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors relative">

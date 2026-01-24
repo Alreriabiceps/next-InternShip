@@ -33,15 +33,22 @@ async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+      serverSelectionTimeoutMS: 30000, // Increased to 30 seconds
       socketTimeoutMS: 45000, // 45 seconds socket timeout
+      connectTimeoutMS: 30000, // 30 seconds connection timeout
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      minPoolSize: 1, // Maintain at least 1 socket connection
+      retryWrites: true,
+      retryReads: true,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI_STRING, opts).then((mongoose) => {
+      console.log('✅ MongoDB connected successfully');
       return mongoose;
     }).catch((error) => {
       cached.promise = null;
-      console.error('MongoDB connection error:', error);
+      console.error('❌ MongoDB connection error:', error);
+      console.error('Connection string:', MONGODB_URI_STRING.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Hide credentials
       throw error;
     });
   }
@@ -50,7 +57,7 @@ async function connectDB() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
-    console.error('MongoDB connection failed:', e);
+    console.error('❌ MongoDB connection failed:', e);
     throw e;
   }
 

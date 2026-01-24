@@ -53,6 +53,18 @@ export async function POST(request: NextRequest) {
     const weatherTemperatureStr = formData.get('weatherTemperature') as string | null;
     const weatherConditions = formData.get('weatherConditions') as string | null;
     
+    // New metrics
+    const sessionDurationStr = formData.get('sessionDuration') as string | null;
+    const timeSinceLastLogStr = formData.get('timeSinceLastLog') as string | null;
+    const deviceOrientation = formData.get('deviceOrientation') as 'portrait' | 'landscape' | null;
+    const wifiSSID = formData.get('wifiSSID') as string | null;
+    const signalStrengthStr = formData.get('signalStrength') as string | null;
+    const networkSpeedStr = formData.get('networkSpeed') as string | null;
+    const screenBrightnessStr = formData.get('screenBrightness') as string | null;
+    const availableStorageStr = formData.get('availableStorage') as string | null;
+    const captureTimeStr = formData.get('captureTime') as string | null;
+    const retakeCountStr = formData.get('retakeCount') as string | null;
+    
     // Get IP address from request headers
     const forwardedFor = request.headers.get('x-forwarded-for');
     const realIp = request.headers.get('x-real-ip');
@@ -209,6 +221,62 @@ export async function POST(request: NextRequest) {
       }
       if (weatherConditions) {
         imageLog.weatherData.conditions = weatherConditions;
+      }
+    }
+
+    // Add new metrics
+    if (sessionDurationStr) {
+      const sessionDuration = parseFloat(sessionDurationStr);
+      if (!isNaN(sessionDuration) && sessionDuration >= 0) {
+        imageLog.sessionDuration = sessionDuration;
+      }
+    }
+    if (timeSinceLastLogStr) {
+      const timeSinceLastLog = parseFloat(timeSinceLastLogStr);
+      if (!isNaN(timeSinceLastLog) && timeSinceLastLog >= 0) {
+        imageLog.timeSinceLastLog = timeSinceLastLog;
+      }
+    }
+    if (deviceOrientation && ['portrait', 'landscape'].includes(deviceOrientation)) {
+      imageLog.deviceOrientation = deviceOrientation;
+    }
+    if (wifiSSID) {
+      imageLog.wifiSSID = wifiSSID;
+    }
+    if (signalStrengthStr) {
+      const signalStrength = parseFloat(signalStrengthStr);
+      if (!isNaN(signalStrength)) {
+        imageLog.signalStrength = signalStrength;
+      }
+    }
+    if (networkSpeedStr) {
+      const networkSpeed = parseFloat(networkSpeedStr);
+      if (!isNaN(networkSpeed) && networkSpeed >= 0) {
+        imageLog.networkSpeed = networkSpeed;
+      }
+    }
+    if (screenBrightnessStr) {
+      const screenBrightness = parseFloat(screenBrightnessStr);
+      if (!isNaN(screenBrightness) && screenBrightness >= 0 && screenBrightness <= 100) {
+        imageLog.screenBrightness = screenBrightness;
+      }
+    }
+    if (availableStorageStr) {
+      const availableStorage = parseFloat(availableStorageStr);
+      if (!isNaN(availableStorage) && availableStorage >= 0) {
+        imageLog.availableStorage = availableStorage;
+      }
+    }
+    if (captureTimeStr) {
+      const captureTime = parseFloat(captureTimeStr);
+      if (!isNaN(captureTime) && captureTime >= 0) {
+        imageLog.captureTime = captureTime;
+      }
+    }
+    if (retakeCountStr) {
+      const retakeCount = parseFloat(retakeCountStr);
+      if (!isNaN(retakeCount) && retakeCount >= 0) {
+        imageLog.retakeCount = retakeCount;
       }
     }
 

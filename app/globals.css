@@ -33,6 +33,10 @@ body {
     @apply bg-[#007AFF] hover:bg-[#0071EB] text-white px-4 py-2 rounded-lg transition-all active:scale-95 shadow-sm;
   }
 
+  .mac-button-secondary {
+    @apply bg-black/5 hover:bg-black/10 text-gray-700 px-4 py-2 rounded-lg transition-all active:scale-95 font-semibold;
+  }
+
   .mac-input {
     @apply bg-white border border-black/10 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#007AFF]/50 outline-none transition-all;
   }

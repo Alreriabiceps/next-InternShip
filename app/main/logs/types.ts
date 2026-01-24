@@ -35,6 +35,17 @@ export interface ImageLog {
     temperature?: number;
     conditions?: string;
   };
+  // New metrics
+  sessionDuration?: number; // Time in app before submission (seconds)
+  timeSinceLastLog?: number; // Time since last log entry (seconds)
+  deviceOrientation?: 'portrait' | 'landscape';
+  wifiSSID?: string;
+  signalStrength?: number;
+  networkSpeed?: number; // in Mbps
+  screenBrightness?: number; // 0-100
+  availableStorage?: number; // in bytes
+  captureTime?: number; // Time from opening camera to submission (seconds)
+  retakeCount?: number;
 }
 
 export interface DailyLog {

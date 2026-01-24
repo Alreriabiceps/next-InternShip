@@ -55,33 +55,18 @@ export async function POST(request: NextRequest) {
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
     const { url: imageUrl } = await uploadImage(imageBuffer, 'intern-profiles');
 
-    console.log('[Profile Picture] Uploaded URL:', imageUrl);
-    console.log('[Profile Picture] Intern _id:', intern._id);
-    console.log('[Profile Picture] Intern before update - profilePicture:', intern.profilePicture);
-
     // Update intern profile picture directly on the document instance
     intern.profilePicture = imageUrl;
     intern.markModified('profilePicture'); // Explicitly mark as modified
     
     try {
       await intern.save();
-      console.log('[Profile Picture] Save successful');
     } catch (saveError: any) {
       console.error('[Profile Picture] Save error:', saveError);
       console.error('[Profile Picture] Save error message:', saveError.message);
       console.error('[Profile Picture] Save error stack:', saveError.stack);
       throw saveError;
     }
-
-    console.log('[Profile Picture] Intern after save - profilePicture:', intern.profilePicture);
-    console.log('[Profile Picture] Intern after save - has profilePicture:', !!intern.profilePicture);
-    console.log('[Profile Picture] Intern after save - toObject():', intern.toObject());
-
-    // Reload from database to verify it was saved
-    const verifiedIntern = await Intern.findById(intern._id);
-    console.log('[Profile Picture] Verified from DB - profilePicture:', verifiedIntern?.profilePicture);
-    console.log('[Profile Picture] Verified from DB - has profilePicture:', !!verifiedIntern?.profilePicture);
-    console.log('[Profile Picture] Verified from DB - toObject():', verifiedIntern?.toObject());
 
     const response = NextResponse.json({
       success: true,

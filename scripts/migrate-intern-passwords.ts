@@ -13,7 +13,6 @@ for (const envPath of possiblePaths) {
   const result = config({ path: envPath });
   if (!result.error) {
     loaded = true;
-    console.log(`✓ Loaded environment variables from: ${envPath}`);
     break;
   }
 }
@@ -52,12 +51,8 @@ if (!process.env.MONGODB_URI) {
       });
 
       if (internsWithoutPassword.length === 0) {
-        console.log('✓ All interns already have passwords set');
         process.exit(0);
       }
-
-      console.log(`Found ${internsWithoutPassword.length} intern(s) without passwords`);
-      console.log('Setting default password "qwerty" for all interns without passwords...\n');
 
       const defaultPassword = 'qwerty';
       const hashedPassword = await hashPassword(defaultPassword);
@@ -68,12 +63,7 @@ if (!process.env.MONGODB_URI) {
         intern.mustChangePassword = true; // Force password change on first login
         await intern.save();
         updated++;
-        console.log(`✓ Updated password for: ${intern.name} (${intern.studentId})`);
       }
-
-      console.log(`\n✓ Successfully updated ${updated} intern(s)`);
-      console.log(`\nDefault password: ${defaultPassword}`);
-      console.log('⚠️  All interns must change their password on first login!');
       process.exit(0);
     } catch (error) {
       console.error('Error migrating intern passwords:', error);

@@ -15,7 +15,6 @@ async function checkInterns() {
 
   try {
     await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB');
 
     const Intern = mongoose.model('Intern', new mongoose.Schema({
       name: String,
@@ -24,9 +23,8 @@ async function checkInterns() {
     }));
 
     const interns = await Intern.find({});
-    console.log(`Found ${interns.length} interns:`);
     interns.forEach(i => {
-      console.log(`- ${i.name} (${i.studentId}) [${i._id}]`);
+      // Output intern info
     });
 
     process.exit(0);

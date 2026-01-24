@@ -13,7 +13,6 @@ for (const envPath of possiblePaths) {
   const result = config({ path: envPath });
   if (!result.error) {
     loaded = true;
-    console.log(`✓ Loaded environment variables from: ${envPath}`);
     break;
   }
 }
@@ -50,7 +49,6 @@ if (!process.env.MONGODB_URI) {
       // Check if admin already exists
       const existingAdmin = await Admin.findOne({ username });
       if (existingAdmin) {
-        console.log('Admin already exists with this username');
         process.exit(0);
       }
 
@@ -63,11 +61,6 @@ if (!process.env.MONGODB_URI) {
       });
 
       await admin.save();
-
-      console.log('Admin created successfully!');
-      console.log(`Username: ${username}`);
-      console.log(`Password: ${password}`);
-      console.log('\n⚠️  Please change the default password after first login!');
       process.exit(0);
     } catch (error) {
       console.error('Error seeding admin:', error);

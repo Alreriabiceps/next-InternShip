@@ -58,14 +58,6 @@ export async function POST(request: NextRequest) {
     // This bypasses any Mongoose document caching
     const freshIntern = await Intern.findById(intern._id.toString()).exec();
     const profilePicValue = freshIntern?.profilePicture || null;
-    
-    // Debug: Log profile picture status
-    console.log('[Login] Student ID:', studentId);
-    console.log('[Login] Intern _id:', intern._id.toString());
-    console.log('[Login] Original intern profilePicture:', intern.profilePicture);
-    console.log('[Login] Fresh intern profilePicture:', freshIntern?.profilePicture);
-    console.log('[Login] Fresh intern profilePicture type:', typeof freshIntern?.profilePicture);
-    console.log('[Login] Final profilePicture value:', profilePicValue);
 
     // Return intern info with mustChangePassword and profilePicture flags
     const response = NextResponse.json({

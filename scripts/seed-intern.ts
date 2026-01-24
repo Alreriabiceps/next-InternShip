@@ -16,7 +16,6 @@ async function seedIntern() {
 
   try {
     await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB');
 
     // Define Intern Schema
     const internSchema = new mongoose.Schema({
@@ -49,10 +48,6 @@ async function seedIntern() {
       mustChangePassword: false,
     });
 
-    console.log('Intern created successfully:');
-    console.log(`Student ID: ${studentId}`);
-    console.log(`Password: ${password}`);
-    console.log(`ID: ${intern._id}`);
 
     process.exit(0);
   } catch (error) {

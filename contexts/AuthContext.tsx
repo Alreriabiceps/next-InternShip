@@ -8,6 +8,7 @@ interface User {
   _id: string;
   username: string;
   name: string;
+  profilePicture?: string | null;
 }
 
 interface AuthContextType {

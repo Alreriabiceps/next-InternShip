@@ -44,7 +44,7 @@ export default function Sidebar() {
             alt="InternShip" 
             width={48}
             height={48}
-            className="object-cover drop-shadow-sm"
+            className="object-contain drop-shadow-sm"
           />
           <h1 className="text-xl font-bold tracking-tight text-gray-900">
             InternShip

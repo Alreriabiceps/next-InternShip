@@ -17,22 +17,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { studentId, currentPassword, newPassword, isFirstLogin } = body;
 
-    // Debug logging
-    console.log('Change password request body:', { 
-      studentId, 
-      studentIdType: typeof studentId,
-      studentIdLength: studentId?.length,
-      hasCurrentPassword: !!currentPassword, 
-      hasNewPassword: !!newPassword,
-      newPasswordType: typeof newPassword,
-      newPasswordLength: newPassword?.length,
-      newPasswordValue: newPassword ? '***' : null,
-    });
-
     // Validate studentId
     const trimmedStudentId = studentId?.toString().trim();
     if (!trimmedStudentId || trimmedStudentId.length === 0) {
-      console.log('Validation failed: Student ID is missing or empty');
       const response = NextResponse.json(
         { error: 'Student ID is required' },
         { status: 400 }
@@ -43,7 +30,6 @@ export async function POST(request: NextRequest) {
     // Validate newPassword
     const trimmedNewPassword = newPassword?.toString().trim();
     if (!trimmedNewPassword || trimmedNewPassword.length === 0) {
-      console.log('Validation failed: New password is missing or empty');
       const response = NextResponse.json(
         { error: 'New password is required' },
         { status: 400 }
@@ -52,7 +38,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (trimmedNewPassword.length < 6) {
-      console.log('Validation failed: New password too short');
       const response = NextResponse.json(
         { error: 'New password must be at least 6 characters' },
         { status: 400 }
@@ -63,7 +48,6 @@ export async function POST(request: NextRequest) {
     const intern = await Intern.findOne({ studentId: trimmedStudentId });
 
     if (!intern) {
-      console.log('Intern not found for studentId:', studentId);
       const response = NextResponse.json(
         { error: 'Intern not found' },
         { status: 404 }
@@ -71,30 +55,14 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, request.headers.get('origin'));
     }
 
-    console.log('Intern found:', {
-      studentId: intern.studentId,
-      mustChangePassword: intern.mustChangePassword,
-      hasPassword: !!intern.password,
-      isFirstLogin: isFirstLogin,
-    });
-
     // If mustChangePassword is true OR isFirstLogin is true, allow change without current password
     // Otherwise, verify current password
     // Handle both boolean and string values for isFirstLogin
     const isFirstLoginBool = isFirstLogin === true || isFirstLogin === 'true' || isFirstLogin === 1 || isFirstLogin === '1';
     const allowWithoutCurrentPassword = intern.mustChangePassword || isFirstLoginBool;
     
-    console.log('Password change authorization:', {
-      mustChangePassword: intern.mustChangePassword,
-      isFirstLogin: isFirstLogin,
-      isFirstLoginBool: isFirstLoginBool,
-      allowWithoutCurrentPassword: allowWithoutCurrentPassword,
-    });
-    
     if (!allowWithoutCurrentPassword) {
-      console.log('mustChangePassword is false and isFirstLogin is false, checking currentPassword');
       if (!currentPassword) {
-        console.log('Current password is required but not provided');
         const response = NextResponse.json(
           { error: 'Current password is required' },
           { status: 400 }
@@ -116,8 +84,6 @@ export async function POST(request: NextRequest) {
     intern.password = await hashPassword(trimmedNewPassword);
     intern.mustChangePassword = false; // Password changed, no longer required
     await intern.save();
-    
-    console.log('Password changed successfully for studentId:', trimmedStudentId);
 
     const response = NextResponse.json({
       success: true,

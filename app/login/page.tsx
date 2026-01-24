@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { User, Lock, ArrowRight } from 'lucide-react';
+import { User, Lock, ArrowRight, Github, Linkedin, Globe, Facebook, Eye, EyeOff, Check } from 'lucide-react';
 import Image from 'next/image';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+
+const REMEMBER_KEY = 'internship_admin_remember';
+const REMEMBER_USER_KEY = 'internship_admin_remember_username';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,8 +20,22 @@ export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      const savedUser = localStorage.getItem(REMEMBER_USER_KEY);
+      if (saved === '1' && savedUser) {
+        setRememberMe(true);
+        setUsername(savedUser);
+      }
+    } catch (_) {}
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +49,15 @@ export default function LoginPage() {
       });
 
       if (response.data.success) {
+        try {
+          if (rememberMe) {
+            localStorage.setItem(REMEMBER_KEY, '1');
+            localStorage.setItem(REMEMBER_USER_KEY, username);
+          } else {
+            localStorage.removeItem(REMEMBER_KEY);
+            localStorage.removeItem(REMEMBER_USER_KEY);
+          }
+        } catch (_) {}
         router.push('/dashboard');
       }
     } catch (err: any) {
@@ -75,8 +101,8 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
               InternShip
             </h1>
-            <p className="text-sm font-medium text-gray-500">
-              Admin Portal
+            <p className="text-xs font-medium text-gray-500">
+              Information Network for Tracking Everyday Records and Notification
             </p>
           </div>
 
@@ -118,16 +144,43 @@ export default function LoginPage() {
                   </div>
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder="Enter your password"
-                    className="w-full bg-black/5 border-none rounded-2xl pl-11 pr-4 py-4 text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-macos-blue/40 transition-all outline-none"
+                    className="w-full bg-black/5 border-none rounded-2xl pl-11 pr-12 py-4 text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-macos-blue/40 transition-all outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
             </div>
+
+            <label className="flex items-center gap-3 cursor-pointer group select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="sr-only"
+              />
+              <span
+                className={cn(
+                  'w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors',
+                  rememberMe ? 'border-macos-blue bg-macos-blue' : 'border-gray-300 group-hover:border-gray-400'
+                )}
+                aria-hidden
+              >
+                {rememberMe && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+              </span>
+              <span className="text-sm text-gray-600 group-hover:text-gray-800">Remember me</span>
+            </label>
 
             <button
               type="submit"
@@ -140,9 +193,44 @@ export default function LoginPage() {
           </form>
         </div>
         
-        <p className="mt-8 text-center text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">
-          Powered by InternShip System
-        </p>
+        <footer className="mt-8 flex items-center justify-center gap-4">
+          <a
+            href="https://github.com/Alreriabiceps"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors"
+            aria-label="GitHub"
+          >
+            <Github className="w-5 h-5" />
+          </a>
+          <a
+            href="https://www.linkedin.com/in/rroxas121709/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors"
+            aria-label="LinkedIn"
+          >
+            <Linkedin className="w-5 h-5" />
+          </a>
+          <a
+            href="https://russelle-roxas-porfolio.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors"
+            aria-label="Portfolio"
+          >
+            <Globe className="w-5 h-5" />
+          </a>
+          <a
+            href="https://www.facebook.com/raroxas1217092/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors"
+            aria-label="Facebook"
+          >
+            <Facebook className="w-5 h-5" />
+          </a>
+        </footer>
       </motion.div>
     </div>
   );

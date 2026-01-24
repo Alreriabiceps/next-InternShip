@@ -21,7 +21,7 @@ export async function GET(
 
     await connectDB();
 
-    const log = await DailyLog.findById(id).populate('internId', 'name email studentId');
+    const log = await DailyLog.findById(id).populate('internId', 'name email studentId profilePicture');
 
     if (!log) {
       return NextResponse.json(

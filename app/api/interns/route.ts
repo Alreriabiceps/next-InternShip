@@ -135,6 +135,7 @@ export async function GET(request: NextRequest) {
       phone: intern.phone,
       company: intern.company,
       companyAddress: intern.companyAddress,
+      profilePicture: intern.profilePicture || undefined,
       createdAt: intern.createdAt ? intern.createdAt.toISOString() : new Date().toISOString(),
     }));
 

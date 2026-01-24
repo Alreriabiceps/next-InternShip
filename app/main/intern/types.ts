@@ -6,6 +6,7 @@ export interface Intern {
   phone?: string;
   company: string;
   companyAddress: string;
+  profilePicture?: string;
   createdAt: string;
 }
 

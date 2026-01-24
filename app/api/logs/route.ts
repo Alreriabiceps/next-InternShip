@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     }
 
     const logs = await DailyLog.find(query)
-      .populate('internId', 'name email studentId company')
+      .populate('internId', 'name email studentId company profilePicture')
       .sort(sortOptions)
       .limit(500);
 

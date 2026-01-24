@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import Footer from './Footer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
@@ -41,10 +42,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               {children}
             </motion.div>
           </AnimatePresence>
+          {/* Subtle Glass Reflection Overlay */}
+          <div className="absolute inset-0 pointer-events-none border-[0.5px] border-white/20 rounded-none z-50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]" />
         </main>
 
-        {/* Subtle Glass Reflection Overlay */}
-        <div className="absolute inset-0 pointer-events-none border-[0.5px] border-white/20 rounded-none z-50 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]" />
+        <Footer />
       </div>
     </div>
   );

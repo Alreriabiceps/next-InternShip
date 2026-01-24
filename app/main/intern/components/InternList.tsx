@@ -16,6 +16,7 @@ import {
   Loader2
 } from 'lucide-react';
 import ListContainer from '@/components/lists/ListContainer';
+import { cloudinaryThumbnail } from '@/lib/cloudinary-thumbnail';
 
 interface InternListProps {
   interns: Intern[];
@@ -43,9 +44,21 @@ export default function InternList({ interns, loading, onDelete, onEdit }: Inter
           <div className="flex items-center justify-between">
             {/* Left Section - Avatar & Basic Info */}
             <div className="flex items-center space-x-5 flex-1 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-macos-blue/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                <User className="w-6 h-6 text-macos-blue" />
-              </div>
+              {intern.profilePicture ? (
+                <div className="w-12 h-12 rounded-2xl overflow-hidden flex-shrink-0 group-hover:scale-110 transition-transform duration-300 border-2 border-macos-blue/20">
+                  <img
+                    src={cloudinaryThumbnail(intern.profilePicture, 48, 48)}
+                    alt={intern.name}
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-2xl bg-macos-blue/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <User className="w-6 h-6 text-macos-blue" />
+                </div>
+              )}
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">

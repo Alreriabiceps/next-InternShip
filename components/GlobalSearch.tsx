@@ -91,14 +91,14 @@ export default function GlobalSearch() {
   return (
     <div className="relative">
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
           placeholder="Search interns, logs, companies..."
-          className="mac-input w-full pl-11 pr-10 text-sm font-medium"
+          className="mac-input w-full !pl-[52px] pr-10 text-sm font-medium"
         />
         {query && (
           <button

@@ -55,6 +55,7 @@ export interface DailyLog {
     name: string;
     email: string;
     studentId: string;
+    profilePicture?: string;
   };
   date: string;
   amLog?: ImageLog;

@@ -88,13 +88,34 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, request.headers.get('origin'));
     }
 
+    const logDate = new Date(date);
+    logDate.setHours(0, 0, 0, 0);
+
+    // Find or create daily log for this date (before upload)
+    let dailyLog = await DailyLog.findOne({ internId, date: logDate });
+    if (!dailyLog) {
+      dailyLog = new DailyLog({ internId, date: logDate });
+    }
+
+    // Enforce 1 Time In and 1 Time Out per day — reject duplicates
+    if (period === 'AM' && dailyLog.amLog) {
+      const response = NextResponse.json(
+        { error: "You've already logged Time In for this day." },
+        { status: 400 }
+      );
+      return addCorsHeaders(response, request.headers.get('origin'));
+    }
+    if (period === 'PM' && dailyLog.pmLog) {
+      const response = NextResponse.json(
+        { error: "You've already logged Time Out for this day." },
+        { status: 400 }
+      );
+      return addCorsHeaders(response, request.headers.get('origin'));
+    }
+
     // Upload image to Cloudinary
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
     const { url: imageUrl, publicId: cloudinaryId } = await uploadImage(imageBuffer);
-
-    // Prepare log data
-    const logDate = new Date(date);
-    logDate.setHours(0, 0, 0, 0);
 
     // Build location object with enhancements
     const locationData: any = {
@@ -280,41 +301,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Find or create daily log for this date
-    let dailyLog = await DailyLog.findOne({
-      internId,
-      date: logDate,
-    });
-
-    if (!dailyLog) {
-      dailyLog = new DailyLog({
-        internId,
-        date: logDate,
-      });
-    }
-
-    // Update AM or PM log
+    // Update AM or PM log (duplicate already rejected above)
     if (period === 'AM') {
-      // Delete old AM image if exists
-      if (dailyLog.amLog?.cloudinaryId) {
-        try {
-          const cloudinary = (await import('@/lib/cloudinary')).default;
-          await cloudinary.uploader.destroy(dailyLog.amLog.cloudinaryId);
-        } catch (error) {
-          console.error('Error deleting old AM image:', error);
-        }
-      }
       dailyLog.amLog = imageLog;
     } else {
-      // Delete old PM image if exists
-      if (dailyLog.pmLog?.cloudinaryId) {
-        try {
-          const cloudinary = (await import('@/lib/cloudinary')).default;
-          await cloudinary.uploader.destroy(dailyLog.pmLog.cloudinaryId);
-        } catch (error) {
-          console.error('Error deleting old PM image:', error);
-        }
-      }
       dailyLog.pmLog = imageLog;
     }
 

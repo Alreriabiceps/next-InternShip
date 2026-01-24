@@ -2,8 +2,9 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
+import { cloudinaryThumbnail } from '@/lib/cloudinary-thumbnail';
 
 export default function TopBar() {
   const pathname = usePathname();
@@ -32,11 +33,6 @@ export default function TopBar() {
           <GlobalSearch />
         </div>
 
-        <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-macos-red rounded-full border-2 border-white" />
-        </button>
-
         <div className="flex items-center pl-5 border-l border-black/5">
           <div className="flex items-center space-x-3.5">
             <div className="text-right hidden sm:block">
@@ -47,9 +43,21 @@ export default function TopBar() {
                 Administrator
               </p>
             </div>
-            <div className="w-9 h-9 bg-macos-blue rounded-2xl flex items-center justify-center text-white shadow-lg shadow-macos-blue/20">
-              <User className="w-5 h-5" />
-            </div>
+            {user?.profilePicture ? (
+              <div className="w-9 h-9 rounded-2xl overflow-hidden border-2 border-macos-blue/20 flex-shrink-0 shadow-lg shadow-macos-blue/20">
+                <img
+                  src={cloudinaryThumbnail(user.profilePicture, 36, 36)}
+                  alt={user.name || user.username || 'Admin'}
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover object-center"
+                />
+              </div>
+            ) : (
+              <div className="w-9 h-9 bg-macos-blue rounded-2xl flex items-center justify-center text-white shadow-lg shadow-macos-blue/20">
+                <User className="w-5 h-5" />
+              </div>
+            )}
           </div>
         </div>
       </div>

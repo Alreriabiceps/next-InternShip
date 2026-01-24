@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { cloudinaryThumbnail } from '@/lib/cloudinary-thumbnail';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -452,9 +453,20 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                           {format(new Date(logData.date), 'PPPP')}
                         </h3>
                         <div className="flex items-center mt-1 space-x-3">
-                          <span className="text-sm font-semibold text-gray-500 flex items-center">
-                            <User className="w-3.5 h-3.5 mr-1.5" /> {logData.internId.name}
-                          </span>
+                          {(logData.internId as DailyLog['internId']).profilePicture ? (
+                            <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-macos-blue/20 flex-shrink-0">
+                              <img
+                                src={cloudinaryThumbnail((logData.internId as DailyLog['internId']).profilePicture!, 24, 24)}
+                                alt={logData.internId.name}
+                                width={24}
+                                height={24}
+                                className="w-full h-full object-cover object-center"
+                              />
+                            </div>
+                          ) : (
+                            <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                          )}
+                          <span className="text-sm font-semibold text-gray-500">{logData.internId.name}</span>
                           <span className="w-1 h-1 rounded-full bg-gray-300" />
                           <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{logData.internId.studentId}</span>
                         </div>

@@ -54,7 +54,20 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, request.headers.get('origin'));
     }
 
-    // Return intern info with mustChangePassword flag
+    // Force a fresh query to get the latest profile picture
+    // This bypasses any Mongoose document caching
+    const freshIntern = await Intern.findById(intern._id.toString()).exec();
+    const profilePicValue = freshIntern?.profilePicture || null;
+    
+    // Debug: Log profile picture status
+    console.log('[Login] Student ID:', studentId);
+    console.log('[Login] Intern _id:', intern._id.toString());
+    console.log('[Login] Original intern profilePicture:', intern.profilePicture);
+    console.log('[Login] Fresh intern profilePicture:', freshIntern?.profilePicture);
+    console.log('[Login] Fresh intern profilePicture type:', typeof freshIntern?.profilePicture);
+    console.log('[Login] Final profilePicture value:', profilePicValue);
+
+    // Return intern info with mustChangePassword and profilePicture flags
     const response = NextResponse.json({
       success: true,
       intern: {
@@ -65,6 +78,8 @@ export async function POST(request: NextRequest) {
         company: intern.company,
         companyAddress: intern.companyAddress,
         mustChangePassword: intern.mustChangePassword,
+        profilePicture: profilePicValue,
+        needsSetup: intern.mustChangePassword || !profilePicValue,
       },
     });
     

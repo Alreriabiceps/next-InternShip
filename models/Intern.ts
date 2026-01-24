@@ -9,6 +9,7 @@ export interface IIntern extends Document {
   company: string;
   companyAddress: string;
   mustChangePassword: boolean;
+  profilePicture?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,13 +51,21 @@ const InternSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    profilePicture: {
+      type: String,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const Intern: Model<IIntern> = mongoose.models.Intern || mongoose.model<IIntern>('Intern', InternSchema);
+// Delete cached model so hot-reload uses current schema (e.g. profilePicture).
+// Otherwise mongoose.models.Intern keeps the old schema and profilePicture is never persisted.
+if (mongoose.models.Intern) {
+  mongoose.deleteModel('Intern');
+}
+const Intern: Model<IIntern> = mongoose.model<IIntern>('Intern', InternSchema);
 
 export default Intern;
 

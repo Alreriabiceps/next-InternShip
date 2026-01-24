@@ -22,9 +22,9 @@ function LogsContent() {
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<DailyLog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; ids: string[] }>({
     isOpen: false,
-    id: null,
+    ids: [],
   });
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: '' });
   const [filters, setFilters] = useState<LogFilters>({
@@ -72,16 +72,18 @@ function LogsContent() {
     }
   };
 
-  const handleDeleteClick = (logId: string) => {
-    setDeleteConfirm({ isOpen: true, id: logId });
+  const handleDeleteClick = (logIds: string[]) => {
+    setDeleteConfirm({ isOpen: true, ids: logIds });
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteConfirm.id) return;
+    if (deleteConfirm.ids.length === 0) return;
 
     try {
-      await api.delete(`/logs/${deleteConfirm.id}`);
-      setDeleteConfirm({ isOpen: false, id: null });
+      for (const id of deleteConfirm.ids) {
+        await api.delete(`/logs/${id}`);
+      }
+      setDeleteConfirm({ isOpen: false, ids: [] });
       fetchLogs();
     } catch (error) {
       console.error('Error deleting log:', error);
@@ -135,7 +137,7 @@ function LogsContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setDeleteConfirm({ isOpen: false, id: null })}
+              onClick={() => setDeleteConfirm({ isOpen: false, ids: [] })}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
             <motion.div
@@ -159,7 +161,7 @@ function LogsContent() {
                   Confirm Delete
                 </button>
                 <button
-                  onClick={() => setDeleteConfirm({ isOpen: false, id: null })}
+                  onClick={() => setDeleteConfirm({ isOpen: false, ids: [] })}
                   className="w-full py-3 text-gray-600 font-semibold hover:bg-black/5 rounded-xl transition-colors"
                 >
                   Cancel

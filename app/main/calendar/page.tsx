@@ -561,21 +561,24 @@ export default function CalendarPage() {
                             <span className="text-gray-600">Completion:</span>
                             <span className="font-bold">{stats.completionRate.toFixed(1)}%</span>
                           </div>
-                          {stats.companies.length > 0 && (
-                            <div>
-                              <span className="text-gray-600">Companies:</span>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {stats.companies.slice(0, 3).map((company, i) => (
-                                  <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                    {company}
-                                  </span>
-                                ))}
-                                {stats.companies.length > 3 && (
-                                  <span className="text-xs text-gray-500">+{stats.companies.length - 3}</span>
-                                )}
+                          {(() => {
+                            const companiesArray = Array.from(stats.companies);
+                            return companiesArray.length > 0 && (
+                              <div>
+                                <span className="text-gray-600">Companies:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {companiesArray.slice(0, 3).map((company, i) => (
+                                    <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                      {company}
+                                    </span>
+                                  ))}
+                                  {companiesArray.length > 3 && (
+                                    <span className="text-xs text-gray-500">+{companiesArray.length - 3}</span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                           {stats.missingInterns.length > 0 && (
                             <div>
                               <span className="text-gray-600 flex items-center gap-1">

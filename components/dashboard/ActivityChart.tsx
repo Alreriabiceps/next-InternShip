@@ -3,7 +3,9 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ActivityData {
-  period: string;
+  period?: string;
+  week?: string;
+  month?: string;
   count: number;
 }
 
@@ -20,12 +22,15 @@ function formatMonth(monthStr: string): string {
 }
 
 export default function ActivityChart({ data, title, type }: ActivityChartProps) {
-  const chartData = data.map(item => ({
-    period: type === 'weekly' 
-      ? item.period.replace('Week ', 'W') 
-      : formatMonth(item.period),
-    count: item.count,
-  }));
+  const chartData = data.map((item) => {
+    const label = item.period ?? (type === 'weekly' ? item.week : item.month) ?? '';
+    return {
+      period: type === 'weekly'
+        ? label.replace(/^Week\s+/i, 'W')
+        : formatMonth(label),
+      count: item.count,
+    };
+  });
 
   return (
     <div className="space-y-4">

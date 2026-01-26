@@ -68,6 +68,14 @@ export default function LogFiltersComponent({ filters, onChange }: LogFiltersPro
     }, 400);
   };
 
+  // Helper function to format date as YYYY-MM-DD in local timezone
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const applyDatePreset = (preset: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -77,31 +85,31 @@ export default function LogFiltersComponent({ filters, onChange }: LogFiltersPro
 
     switch (preset) {
       case 'today':
-        startDate = today.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(today);
+        endDate = formatLocalDate(today);
         break;
       case 'this-week':
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() - today.getDay());
-        startDate = weekStart.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(weekStart);
+        endDate = formatLocalDate(today);
         break;
       case 'this-month':
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        startDate = monthStart.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(monthStart);
+        endDate = formatLocalDate(today);
         break;
       case 'last-7-days':
         const last7Days = new Date(today);
         last7Days.setDate(today.getDate() - 7);
-        startDate = last7Days.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(last7Days);
+        endDate = formatLocalDate(today);
         break;
       case 'last-30-days':
         const last30Days = new Date(today);
         last30Days.setDate(today.getDate() - 30);
-        startDate = last30Days.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
+        startDate = formatLocalDate(last30Days);
+        endDate = formatLocalDate(today);
         break;
       case 'custom':
         // Keep existing dates

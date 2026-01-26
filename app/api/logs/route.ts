@@ -59,10 +59,17 @@ export async function GET(request: NextRequest) {
     if (startDate || endDate) {
       query.date = {};
       if (startDate) {
-        query.date.$gte = new Date(startDate);
+        // Parse date string (YYYY-MM-DD) and set to start of day in UTC
+        // new Date('YYYY-MM-DD') interprets as UTC midnight, which is what we want
+        const [year, month, day] = startDate.split('-').map(Number);
+        const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+        query.date.$gte = start;
       }
       if (endDate) {
-        query.date.$lte = new Date(endDate);
+        // Parse date string and set to end of day in UTC (23:59:59.999)
+        const [year, month, day] = endDate.split('-').map(Number);
+        const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+        query.date.$lte = end;
       }
     }
 

@@ -11,7 +11,6 @@ import {
   CheckCircle2, 
   XCircle, 
   Eye, 
-  Trash2, 
   ChevronRight 
 } from 'lucide-react';
 import ListContainer from '@/components/lists/ListContainer';
@@ -33,17 +32,15 @@ interface MergedLog {
   amLog?: DailyLog['amLog'];
   pmLog?: DailyLog['pmLog'];
   primaryId: string;   // for Details
-  allIds: string[];   // for Delete (remove all)
 }
 
 interface LogListProps {
   logs: DailyLog[];
   loading: boolean;
   onView: (logId: string) => void;
-  onDelete: (logIds: string[]) => void;
 }
 
-export default function LogList({ logs, loading, onView, onDelete }: LogListProps) {
+export default function LogList({ logs, loading, onView }: LogListProps) {
   const StatusBadge = ({ submitted, period }: { submitted: boolean, period: 'AM' | 'PM' }) => (
     <div className={cn(
       "flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all",
@@ -80,7 +77,6 @@ export default function LogList({ logs, loading, onView, onDelete }: LogListProp
         const first = internLogs[0]!;
         let amLog = first.amLog;
         let pmLog = first.pmLog;
-        const allIds = internLogs.map(l => l._id);
         for (let i = 1; i < internLogs.length; i++) {
           const l = internLogs[i]!;
           if (l.amLog) amLog = l.amLog;
@@ -98,7 +94,6 @@ export default function LogList({ logs, loading, onView, onDelete }: LogListProp
           amLog,
           pmLog,
           primaryId: primary._id,
-          allIds,
         });
       });
       result.push({ dateKey, merged: mergedList });
@@ -182,13 +177,6 @@ export default function LogList({ logs, loading, onView, onDelete }: LogListProp
                     >
                       <Eye className="w-4 h-4" />
                       <span className="hidden sm:inline">Details</span>
-                    </button>
-                    <button
-                      onClick={() => onDelete(m.allIds)}
-                      className="p-2 text-gray-400 hover:text-macos-red hover:bg-macos-red/10 rounded-xl transition-all duration-200"
-                      title="Delete Log Entry"
-                    >
-                      <Trash2 className="w-4.5 h-4.5" />
                     </button>
                     <div className="pl-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <ChevronRight className="w-4 h-4 text-gray-300" />

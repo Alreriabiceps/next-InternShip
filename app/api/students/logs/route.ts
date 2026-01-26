@@ -123,12 +123,12 @@ export async function POST(request: NextRequest) {
     const submissionHour = hasValidSubmissionTime ? parsedHour : new Date().getUTCHours();
     const submissionMinute = hasValidSubmissionTime ? parsedMinute : new Date().getUTCMinutes();
 
-    function getAdjacentDayStr(dayStr: string, deltaDays: number): string {
+    const getAdjacentDayStr = (dayStr: string, deltaDays: number): string => {
       const [yy, mm, dd] = dayStr.split('-').map(Number);
       const d = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0, 0));
       d.setUTCDate(d.getUTCDate() + deltaDays);
       return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
-    }
+    };
 
     const yesterdayStr = getAdjacentDayStr(submissionDate, -1);
     if (logDateStr !== submissionDate && logDateStr !== yesterdayStr) {

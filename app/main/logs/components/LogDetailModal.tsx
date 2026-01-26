@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { DailyLog, ImageLog } from '../types';
+import { formatLogDate } from '@/lib/date';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -195,9 +196,16 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
               </a>
             </div>
             <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
-              <div className="flex items-center text-white space-x-2">
-                <Clock className="w-4 h-4 opacity-70" />
-                <span className="text-sm font-bold">{format(new Date(imageLog.timestamp), 'h:mm a')}</span>
+              <div className="flex items-center flex-wrap gap-2 text-white">
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 opacity-70" />
+                  <span className="text-sm font-bold">{format(new Date(imageLog.timestamp), 'h:mm a')}</span>
+                </div>
+                {imageLog.submittedLate && (
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold uppercase tracking-wider">
+                    Submitted late
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -450,7 +458,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-                          {format(new Date(logData.date), 'PPPP')}
+                          {formatLogDate(logData.date, 'PPPP')}
                         </h3>
                         <div className="flex items-center mt-1 space-x-3">
                           {(logData.internId as DailyLog['internId']).profilePicture ? (

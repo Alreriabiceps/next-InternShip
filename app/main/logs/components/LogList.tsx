@@ -2,6 +2,7 @@
 
 import { format } from 'date-fns';
 import { DailyLog } from '../types';
+import { getLogDateKey, parseLocalDate } from '@/lib/date';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { 
@@ -59,7 +60,7 @@ export default function LogList({ logs, loading, onView, onDelete }: LogListProp
   const logsByDate = useMemo(() => {
     const byDate = new Map<string, DailyLog[]>();
     logs.forEach(log => {
-      const dateKey = format(new Date(log.date), 'yyyy-MM-dd');
+      const dateKey = getLogDateKey(log.date);
       if (!byDate.has(dateKey)) byDate.set(dateKey, []);
       byDate.get(dateKey)!.push(log);
     });
@@ -113,7 +114,7 @@ export default function LogList({ logs, loading, onView, onDelete }: LogListProp
       title="Daily Submission History"
     >
       {logsByDate.map((entry, dateIndex) => {
-        const date = new Date(entry.dateKey);
+        const date = parseLocalDate(entry.dateKey);
         return (
           <div key={entry.dateKey} className="border-b border-gray-100 last:border-b-0">
             {/* Date Header */}

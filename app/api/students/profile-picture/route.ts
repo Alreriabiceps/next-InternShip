@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongodb';
 import Intern from '@/models/Intern';
 import { uploadImage, deleteImage } from '@/lib/cloudinary';
 import { addCorsHeaders } from '@/lib/cors';
+import { getAuthenticatedStudent, unauthorizedResponse, forbiddenResponse } from '@/middleware/studentAuth';
 
 export async function OPTIONS(request: NextRequest) {
   const response = new NextResponse(null, { status: 200 });
@@ -11,6 +12,12 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticated = getAuthenticatedStudent(request);
+    if (!authenticated) {
+      return unauthorizedResponse(request, 'Authentication required');
+    }
+
     await connectDB();
 
     const formData = await request.formData();
@@ -23,6 +30,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
       return addCorsHeaders(response, request.headers.get('origin'));
+    }
+
+    // Verify the authenticated user is updating their own profile
+    if (authenticated.studentId !== studentId) {
+      return forbiddenResponse(request, 'You can only update your own profile picture');
     }
 
     const intern = await Intern.findOne({ studentId });
@@ -39,15 +51,34 @@ export async function POST(request: NextRequest) {
     if (intern.profilePicture) {
       try {
         // Extract publicId from Cloudinary URL
-        // Format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/publicId.jpg
-        const urlMatch = intern.profilePicture.match(/\/upload\/[^/]+\/(.+)$/);
-        if (urlMatch && urlMatch[1]) {
-          const publicId = urlMatch[1].replace(/\.[^.]+$/, ''); // Remove extension
-          await deleteImage(publicId);
+        // Supports multiple URL formats:
+        // 1. https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/publicId.jpg
+        // 2. https://res.cloudinary.com/cloud_name/image/upload/folder/publicId.jpg (no version)
+        // 3. https://res.cloudinary.com/cloud_name/image/upload/v1234567890/publicId.jpg (no folder)
+        // 4. With transformations: https://res.cloudinary.com/cloud_name/image/upload/c_fill,h_100,w_100/v1234567890/folder/publicId.jpg
+        
+        const url = intern.profilePicture;
+        
+        // Method 1: Try to extract everything after /upload/ (with optional version and transformations)
+        // Pattern matches: /upload/[optional_transformations/][optional_version/]path/to/publicId.extension
+        const uploadMatch = url.match(/\/upload\/(?:[a-z_,0-9]+\/)?(?:v\d+\/)?(.+)$/);
+        
+        if (uploadMatch && uploadMatch[1]) {
+          // Remove file extension
+          let publicId = uploadMatch[1].replace(/\.[^.]+$/, '');
+          
+          // Validate that we have something
+          if (publicId && publicId.length > 0) {
+            console.log('[Profile Picture] Attempting to delete old image with publicId:', publicId);
+            await deleteImage(publicId);
+            console.log('[Profile Picture] Successfully deleted old image');
+          }
+        } else {
+          console.warn('[Profile Picture] Could not extract publicId from URL:', url);
         }
       } catch (error) {
         console.error('Error deleting old profile picture:', error);
-        // Continue even if deletion fails
+        // Continue even if deletion fails - the upload should still proceed
       }
     }
 

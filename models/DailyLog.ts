@@ -49,6 +49,8 @@ export interface IImageLog {
   availableStorage?: number; // in bytes
   captureTime?: number; // Time from opening camera to submission (seconds)
   retakeCount?: number;
+  submittedLate?: boolean;
+  submittedAt?: Date;
 }
 
 export interface IDailyLog extends Document {
@@ -226,6 +228,12 @@ const ImageLogSchema: Schema = new Schema({
   retakeCount: {
     type: Number,
     min: 0,
+  },
+  submittedLate: {
+    type: Boolean,
+  },
+  submittedAt: {
+    type: Date,
   },
 }, { _id: false });
 

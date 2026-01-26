@@ -46,6 +46,8 @@ export interface ImageLog {
   availableStorage?: number; // in bytes
   captureTime?: number; // Time from opening camera to submission (seconds)
   retakeCount?: number;
+  submittedLate?: boolean;
+  submittedAt?: string;
 }
 
 export interface DailyLog {

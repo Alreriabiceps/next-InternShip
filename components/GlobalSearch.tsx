@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Search, X, FileText, Users, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
+import { formatLogDate } from '@/lib/date';
 
 interface SearchResult {
   type: 'intern' | 'log' | 'company';
@@ -52,7 +52,7 @@ export default function GlobalSearch() {
       });
       const logs: SearchResult[] = filteredLogs.slice(0, 5).map((log: any) => ({
         type: 'log' as const, id: log._id,
-        title: `${log.internId?.name || 'Unknown'} - ${format(new Date(log.date), 'MMM d, yyyy')}`,
+        title: `${log.internId?.name || 'Unknown'} - ${formatLogDate(log.date, 'MMM d, yyyy')}`,
         subtitle: log.amLog?.location?.address || log.pmLog?.location?.address || 'No location',
         metadata: `${log.amLog ? 'AM' : ''}${log.amLog && log.pmLog ? ' & ' : ''}${log.pmLog ? 'PM' : ''}`
       }));

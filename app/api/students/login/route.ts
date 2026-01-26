@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Intern from '@/models/Intern';
-import { verifyPassword } from '@/lib/auth';
+import { verifyPassword, generateStudentToken } from '@/lib/auth';
 import { addCorsHeaders } from '@/lib/cors';
 
 // Handle OPTIONS request for CORS preflight
@@ -59,9 +59,13 @@ export async function POST(request: NextRequest) {
     const freshIntern = await Intern.findById(intern._id.toString()).exec();
     const profilePicValue = freshIntern?.profilePicture || null;
 
+    // Generate JWT token for authenticated requests
+    const token = generateStudentToken(intern._id.toString(), intern.studentId);
+
     // Return intern info with mustChangePassword and profilePicture flags
     const response = NextResponse.json({
       success: true,
+      token,
       intern: {
         id: intern._id,
         name: intern.name,

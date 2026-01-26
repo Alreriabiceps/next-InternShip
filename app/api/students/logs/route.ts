@@ -4,6 +4,7 @@ import DailyLog from '@/models/DailyLog';
 import Intern from '@/models/Intern';
 import { uploadImage } from '@/lib/cloudinary';
 import { addCorsHeaders } from '@/lib/cors';
+import { getAuthenticatedStudent, unauthorizedResponse, validateStudentAccess, forbiddenResponse } from '@/middleware/studentAuth';
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS(request: NextRequest) {
@@ -13,10 +14,21 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticated = getAuthenticatedStudent(request);
+    if (!authenticated) {
+      return unauthorizedResponse(request, 'Authentication required');
+    }
+
     await connectDB();
 
     const formData = await request.formData();
     const internId = formData.get('internId') as string;
+    
+    // Verify the authenticated user is submitting their own log
+    if (!validateStudentAccess(authenticated, internId)) {
+      return forbiddenResponse(request, 'You can only submit logs for your own account');
+    }
     const date = formData.get('date') as string;
     const period = formData.get('period') as 'AM' | 'PM';
     const latitude = parseFloat(formData.get('latitude') as string);
@@ -64,7 +76,10 @@ export async function POST(request: NextRequest) {
     const availableStorageStr = formData.get('availableStorage') as string | null;
     const captureTimeStr = formData.get('captureTime') as string | null;
     const retakeCountStr = formData.get('retakeCount') as string | null;
-    
+    const submissionDateStr = (formData.get('submissionDate') as string | null)?.trim() || null;
+    const submissionHourStr = formData.get('submissionHour') as string | null;
+    const submissionMinuteStr = formData.get('submissionMinute') as string | null;
+
     // Get IP address from request headers
     const forwardedFor = request.headers.get('x-forwarded-for');
     const realIp = request.headers.get('x-real-ip');
@@ -88,8 +103,54 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, request.headers.get('origin'));
     }
 
-    const logDate = new Date(date);
-    logDate.setHours(0, 0, 0, 0);
+    // Parse YYYY-MM-DD as UTC midnight so storage and lookup are timezone-independent
+    const [y, m, day] = date.split('-').map(Number);
+    if (!y || !m || !day || m < 1 || m > 12 || day < 1 || day > 31) {
+      const response = NextResponse.json(
+        { error: 'Invalid date format. Use YYYY-MM-DD.' },
+        { status: 400 }
+      );
+      return addCorsHeaders(response, request.headers.get('origin'));
+    }
+    const logDate = new Date(Date.UTC(y, m - 1, day, 0, 0, 0, 0));
+    const logDateStr = date;
+
+    // Submission date: client-sent or fallback to server UTC date
+    const submissionDate = submissionDateStr || new Date().toISOString().slice(0, 10);
+    const parsedHour = submissionHourStr != null && submissionHourStr !== '' ? parseInt(submissionHourStr, 10) : NaN;
+    const parsedMinute = submissionMinuteStr != null && submissionMinuteStr !== '' ? parseInt(submissionMinuteStr, 10) : NaN;
+    const hasValidSubmissionTime = !isNaN(parsedHour) && parsedHour >= 0 && parsedHour <= 23 && !isNaN(parsedMinute) && parsedMinute >= 0 && parsedMinute <= 59;
+    const submissionHour = hasValidSubmissionTime ? parsedHour : new Date().getUTCHours();
+    const submissionMinute = hasValidSubmissionTime ? parsedMinute : new Date().getUTCMinutes();
+
+    function getAdjacentDayStr(dayStr: string, deltaDays: number): string {
+      const [yy, mm, dd] = dayStr.split('-').map(Number);
+      const d = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0, 0));
+      d.setUTCDate(d.getUTCDate() + deltaDays);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    }
+
+    const yesterdayStr = getAdjacentDayStr(submissionDate, -1);
+    if (logDateStr !== submissionDate && logDateStr !== yesterdayStr) {
+      const response = NextResponse.json(
+        { error: 'Can only log for today or yesterday.' },
+        { status: 400 }
+      );
+      return addCorsHeaders(response, request.headers.get('origin'));
+    }
+
+    if (period === 'AM' && logDateStr === submissionDate) {
+      const [yy, mm, dd] = yesterdayStr.split('-').map(Number);
+      const yesterdayLogDateUtc = new Date(Date.UTC(yy, mm - 1, dd, 0, 0, 0, 0));
+      const yesterdayLog = await DailyLog.findOne({ internId, date: yesterdayLogDateUtc });
+      if (yesterdayLog?.amLog && !yesterdayLog?.pmLog) {
+        const response = NextResponse.json(
+          { error: "Complete yesterday's Check Out before checking in for today." },
+          { status: 400 }
+        );
+        return addCorsHeaders(response, request.headers.get('origin'));
+      }
+    }
 
     // Find or create daily log for this date (before upload)
     let dailyLog = await DailyLog.findOne({ internId, date: logDate });
@@ -97,17 +158,17 @@ export async function POST(request: NextRequest) {
       dailyLog = new DailyLog({ internId, date: logDate });
     }
 
-    // Enforce 1 Time In and 1 Time Out per day — reject duplicates
+    // Enforce 1 Check In and 1 Check Out per day — reject duplicates
     if (period === 'AM' && dailyLog.amLog) {
       const response = NextResponse.json(
-        { error: "You've already logged Time In for this day." },
+        { error: "You've already checked in for this day." },
         { status: 400 }
       );
       return addCorsHeaders(response, request.headers.get('origin'));
     }
     if (period === 'PM' && dailyLog.pmLog) {
       const response = NextResponse.json(
-        { error: "You've already logged Time Out for this day." },
+        { error: "You've already checked out for this day." },
         { status: 400 }
       );
       return addCorsHeaders(response, request.headers.get('origin'));
@@ -301,6 +362,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const SUBMITTED_LATE_CUTOFF_HOUR = 12;
+    if (submissionDate === logDateStr) {
+      imageLog.submittedLate = false;
+    } else {
+      const nextDayStr = getAdjacentDayStr(logDateStr, 1);
+      if (submissionDate === nextDayStr) {
+        // When submission time is missing or invalid (e.g. old client), treat as late to be conservative
+        imageLog.submittedLate = !hasValidSubmissionTime || submissionHour >= SUBMITTED_LATE_CUTOFF_HOUR;
+      } else {
+        imageLog.submittedLate = true;
+      }
+    }
+    imageLog.submittedAt = new Date();
+
     // Update AM or PM log (duplicate already rejected above)
     if (period === 'AM') {
       dailyLog.amLog = imageLog;
@@ -343,6 +418,12 @@ export async function POST(request: NextRequest) {
 // Get student's own logs
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticated = getAuthenticatedStudent(request);
+    if (!authenticated) {
+      return unauthorizedResponse(request, 'Authentication required');
+    }
+
     await connectDB();
 
     const { searchParams } = new URL(request.url);
@@ -354,6 +435,11 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
       return addCorsHeaders(response, request.headers.get('origin'));
+    }
+
+    // Verify the authenticated user is requesting their own logs
+    if (!validateStudentAccess(authenticated, internId)) {
+      return forbiddenResponse(request, 'You can only view your own logs');
     }
 
     const logs = await DailyLog.find({ internId })

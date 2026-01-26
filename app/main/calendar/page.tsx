@@ -7,6 +7,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X, User, Clock, CheckCircle2, ExternalLink, Sun, Moon, MapPin, Search, Filter, ChevronDown, TrendingUp, TrendingDown, Minus, Grid3x3, Calendar, Building2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DailyLog } from '../logs/types';
+import { getLogDateKey } from '@/lib/date';
 
 interface Intern {
   _id: string;
@@ -105,7 +106,7 @@ export default function CalendarPage() {
   const logsByDate = useMemo(() => {
     const map = new Map<string, DailyLog[]>();
     logs.forEach(log => {
-      const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
+      const dateStr = getLogDateKey(log.date);
       if (!map.has(dateStr)) map.set(dateStr, []);
       map.get(dateStr)!.push(log);
     });
@@ -242,7 +243,7 @@ export default function CalendarPage() {
     const prevDailyRates: number[] = [];
 
     prevMonthLogs.forEach(log => {
-      const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
+      const dateStr = getLogDateKey(log.date);
       if (prevAllDates.some(d => format(d, 'yyyy-MM-dd') === dateStr)) {
         prevTotalLogs++;
         if (log.amLog && log.pmLog) prevTotalComplete++;
@@ -251,7 +252,7 @@ export default function CalendarPage() {
 
     prevAllDates.forEach(date => {
       const dateStr = format(date, 'yyyy-MM-dd');
-      const dateLogs = prevMonthLogs.filter(log => format(new Date(log.date), 'yyyy-MM-dd') === dateStr);
+      const dateLogs = prevMonthLogs.filter(log => getLogDateKey(log.date) === dateStr);
       if (dateLogs.length > 0) {
         const complete = dateLogs.filter(log => log.amLog && log.pmLog).length;
         prevDailyRates.push((complete / dateLogs.length) * 100);

@@ -28,11 +28,12 @@ export async function GET(request: NextRequest) {
       createdAt: { $gte: sevenDaysAgo },
     });
 
-    // Get today's logs
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get today's logs (UTC date range to match how log dates are stored)
+    const now = new Date();
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
     const todayLogs = await DailyLog.countDocuments({
-      date: { $gte: today },
+      date: { $gte: todayStart, $lte: todayEnd },
     });
 
     // Get logs with both AM and PM

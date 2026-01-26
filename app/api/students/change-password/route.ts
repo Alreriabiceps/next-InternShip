@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongodb';
 import Intern from '@/models/Intern';
 import { hashPassword, verifyPassword } from '@/lib/auth';
 import { addCorsHeaders } from '@/lib/cors';
+import { getAuthenticatedStudent, forbiddenResponse } from '@/middleware/studentAuth';
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS(request: NextRequest) {
@@ -55,12 +56,22 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, request.headers.get('origin'));
     }
 
-    // If mustChangePassword is true OR isFirstLogin is true, allow change without current password
-    // Otherwise, verify current password
     // Handle both boolean and string values for isFirstLogin
     const isFirstLoginBool = isFirstLogin === true || isFirstLogin === 'true' || isFirstLogin === 1 || isFirstLogin === '1';
     const allowWithoutCurrentPassword = intern.mustChangePassword || isFirstLoginBool;
     
+    // If not first login, verify authentication token if provided
+    // This adds an extra layer of security for regular password changes
+    const authenticated = getAuthenticatedStudent(request);
+    if (!allowWithoutCurrentPassword && authenticated) {
+      // User is logged in - verify they are changing their own password
+      if (authenticated.studentId !== trimmedStudentId) {
+        return forbiddenResponse(request, 'You can only change your own password');
+      }
+    }
+    
+    // If mustChangePassword is true OR isFirstLogin is true, allow change without current password
+    // Otherwise, verify current password
     if (!allowWithoutCurrentPassword) {
       if (!currentPassword) {
         const response = NextResponse.json(

@@ -35,6 +35,43 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// In-memory cache for reverse geocode results (Nominatim asks to cache)
+const reverseGeocodeCache = new Map<string, { municipality: string | null; barangay: string | null }>();
+
+async function reverseGeocode(lat: number, lng: number): Promise<{ municipality: string | null; barangay: string | null }> {
+  const key = `v2,${lat.toFixed(5)},${lng.toFixed(5)}`;
+  const cached = reverseGeocodeCache.get(key);
+  if (cached) return cached;
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&zoom=13`;
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'User-Agent': 'InternShip-Admin/1.0 (Contact: intern-tracker)' },
+    });
+    if (!res.ok) throw new Error('Geocode failed');
+    const data = await res.json();
+    const addr = data?.address || {};
+    // Municipality: town/municipality/city (PH: municipality or city LGU)
+    const municipality = addr.town || addr.municipality || addr.city || addr.county || null;
+    // Barangay (PH OSM): place=village (rural) or place=quarter (urban). Avoid neighbourhood/hamlet (sitio/purok) and suburb (often district) as primary.
+    const barangay =
+      addr.village ||   // rural barangay
+      addr.quarter ||   // urban barangay
+      addr.district ||  // PH addr:district can be barangay
+      addr.city_district ||
+      addr.borough ||
+      addr.suburb ||    // sometimes barangay; in PH can be city district
+      addr.neighbourhood || // sitio/purok in PH; fallback only
+      addr.hamlet ||    // sitio/purok in PH; fallback only
+      null;
+    const result = { municipality, barangay };
+    reverseGeocodeCache.set(key, result);
+    return result;
+  } catch {
+    return { municipality: null, barangay: null };
+  }
+}
+
 interface LogDetailModalProps {
   log: DailyLog | null;
   isOpen: boolean;
@@ -43,12 +80,36 @@ interface LogDetailModalProps {
 
 export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'AM' | 'PM'>('AM');
+  const [placeDetails, setPlaceDetails] = useState<{ municipality: string | null; barangay: string | null } | null>(null);
+  const [placeDetailsLoading, setPlaceDetailsLoading] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
 
   const googleMapsUrl = (lat: number, lng: number) => {
     return `https://www.google.com/maps?q=${lat},${lng}`;
   };
+
+  // Reverse geocode to get municipality and barangay from coordinates
+  useEffect(() => {
+    if (!isOpen || !log) {
+      setPlaceDetails(null);
+      setPlaceDetailsLoading(false);
+      return;
+    }
+    const currentLog = activeTab === 'AM' ? log.amLog : log.pmLog;
+    if (!currentLog?.location?.latitude || !currentLog?.location?.longitude) {
+      setPlaceDetails(null);
+      setPlaceDetailsLoading(false);
+      return;
+    }
+    const { latitude, longitude } = currentLog.location;
+    setPlaceDetailsLoading(true);
+    setPlaceDetails(null);
+    reverseGeocode(latitude, longitude).then((r) => {
+      setPlaceDetails(r);
+      setPlaceDetailsLoading(false);
+    });
+  }, [log, isOpen, activeTab]);
 
   // Initialize Leaflet map
   useEffect(() => {
@@ -221,7 +282,9 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                 <MapPin className="w-4 h-4 text-macos-blue flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <span className="text-[12px] font-bold text-gray-900 leading-tight block">
-                    {imageLog.location.address || 'Location Coordinates Pinpointed'}
+                    {(placeDetails?.barangay || placeDetails?.municipality)
+                      ? [placeDetails.barangay, placeDetails.municipality].filter(Boolean).join(', ')
+                      : imageLog.location.address || 'Location Coordinates Pinpointed'}
                   </span>
                   <span className="text-[10px] font-semibold text-gray-600 mt-1 block">
                     {imageLog.location.latitude.toFixed(6)}, {imageLog.location.longitude.toFixed(6)}
@@ -263,6 +326,14 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
             <DetailItem 
               label="Full Address" 
               value={imageLog.location.address || 'Address not available'} 
+            />
+            <DetailItem 
+              label="Municipality" 
+              value={placeDetails?.municipality ?? (placeDetailsLoading ? 'Loading...' : '—')} 
+            />
+            <DetailItem 
+              label="Barangay" 
+              value={placeDetails?.barangay ?? (placeDetailsLoading ? 'Loading...' : '—')} 
             />
             <DetailItem 
               label="Coordinates (Lat, Long)" 

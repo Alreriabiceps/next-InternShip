@@ -6,6 +6,7 @@ import { Intern, InternFormData, InternFilters } from './types';
 import InternForm from './components/InternForm';
 import InternList from './components/InternList';
 import InternFiltersComponent from './components/InternFilters';
+import InternDetailModal from './components/InternDetailModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Trash2, AlertCircle, Edit2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -43,6 +44,8 @@ export default function InternPage() {
     id: null,
   });
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: '' });
+  const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   useEffect(() => {
     fetchInterns();
@@ -112,6 +115,11 @@ export default function InternPage() {
 
   const handleDeleteClick = (id: string) => {
     setDeleteConfirm({ isOpen: true, id });
+  };
+
+  const handleViewProfile = (intern: Intern) => {
+    setSelectedIntern(intern);
+    setIsDetailModalOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -207,6 +215,7 @@ export default function InternPage() {
           loading={loading} 
           onDelete={handleDeleteClick}
           onEdit={handleEditClick}
+          onViewProfile={handleViewProfile}
         />
       </div>
 
@@ -252,6 +261,16 @@ export default function InternPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Intern Detail Modal */}
+      <InternDetailModal
+        intern={selectedIntern}
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedIntern(null);
+        }}
+      />
 
       {/* macOS Style Error Modal */}
       <AnimatePresence>

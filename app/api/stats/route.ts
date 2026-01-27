@@ -126,33 +126,36 @@ export async function GET(request: NextRequest) {
       { $limit: 12 }
     ]);
 
-    // Company-wise breakdown
-    const companyBreakdown = await DailyLog.aggregate([
+    // Company breakdown: ALL companies from Interns (then add log counts)
+    const companiesFromInterns = await Intern.aggregate([
+      { $group: { _id: '$company', internCount: { $sum: 1 } } },
+      { $sort: { internCount: -1 } }
+    ]);
+
+    // Log counts per company (from DailyLog + Intern lookup)
+    const logCountByCompany = await DailyLog.aggregate([
       {
         $lookup: {
           from: 'interns',
           localField: 'internId',
           foreignField: '_id',
-          as: 'intern'
+          as: 'intern',
+          pipeline: [{ $project: { company: 1 } }]
         }
       },
       { $unwind: '$intern' },
-      {
-        $group: {
-          _id: '$intern.company',
-          count: { $sum: 1 },
-          interns: { $addToSet: '$internId' }
-        }
-      },
-      {
-        $project: {
-          company: '$_id',
-          logCount: '$count',
-          internCount: { $size: '$interns' }
-        }
-      },
-      { $sort: { logCount: -1 } }
+      { $group: { _id: '$intern.company', logCount: { $sum: 1 } } }
     ]);
+
+    const logCountMap = new Map(
+      logCountByCompany.map((r: { _id: string; logCount: number }) => [String(r._id), r.logCount])
+    );
+
+    const companyBreakdown = companiesFromInterns.map((c: { _id: string; internCount: number }) => ({
+      company: c._id || 'Unassigned',
+      internCount: c.internCount,
+      logCount: logCountMap.get(String(c._id)) ?? 0,
+    }));
 
     // Intern activity over time (top 10 most active interns)
     const internActivity = await DailyLog.aggregate([
@@ -185,9 +188,142 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Completion rates
-    const totalWithAM = await DailyLog.countDocuments({ amLog: { $exists: true } });
-    const totalWithPM = await DailyLog.countDocuments({ pmLog: { $exists: true } });
     const completionRate = totalLogs > 0 ? ((completeLogs / totalLogs) * 100).toFixed(1) : '0';
+
+    // Late submissions - count logs where amLog or pmLog has submittedLate: true
+    const lateSubmissionsToday = await DailyLog.countDocuments({
+      date: { $gte: todayStart, $lte: todayEnd },
+      $or: [
+        { 'amLog.submittedLate': true },
+        { 'pmLog.submittedLate': true }
+      ]
+    });
+
+    const lateSubmissionsWeek = await DailyLog.countDocuments({
+      date: { $gte: sevenDaysAgo },
+      $or: [
+        { 'amLog.submittedLate': true },
+        { 'pmLog.submittedLate': true }
+      ]
+    });
+
+    // Today's attendance breakdown - who logged today vs who hasn't
+    const internsLoggedToday = await DailyLog.distinct('internId', {
+      date: { $gte: todayStart, $lte: todayEnd }
+    });
+    const internsLoggedTodayCount = internsLoggedToday.length;
+    const internsNotLoggedToday = totalInterns - internsLoggedTodayCount;
+
+    // Get list of interns who haven't logged today (for display)
+    const allInterns = await Intern.find({}, { _id: 1, name: 1, company: 1 }).lean();
+    const loggedInternIds = new Set(internsLoggedToday.map((id: mongoose.Types.ObjectId) => id.toString()));
+    const missingToday = allInterns
+      .filter(intern => !loggedInternIds.has(intern._id.toString()))
+      .map(intern => ({ id: intern._id.toString(), name: intern.name, company: intern.company }))
+      .slice(0, 10); // Limit to 10
+
+    // On-time vs late ratio (last 30 days)
+    const onTimeLogs = await DailyLog.countDocuments({
+      date: { $gte: thirtyDaysAgo },
+      $and: [
+        { 'amLog.submittedLate': { $ne: true } },
+        { 'pmLog.submittedLate': { $ne: true } }
+      ],
+      $or: [
+        { amLog: { $exists: true } },
+        { pmLog: { $exists: true } }
+      ]
+    });
+
+    const lateLogs = await DailyLog.countDocuments({
+      date: { $gte: thirtyDaysAgo },
+      $or: [
+        { 'amLog.submittedLate': true },
+        { 'pmLog.submittedLate': true }
+      ]
+    });
+
+    // Average hours worked (from complete logs in last 30 days)
+    const completeLogsWithHours = await DailyLog.aggregate([
+      {
+        $match: {
+          date: { $gte: thirtyDaysAgo },
+          amLog: { $exists: true },
+          pmLog: { $exists: true }
+        }
+      },
+      {
+        $project: {
+          hours: {
+            $divide: [
+              { $subtract: ['$pmLog.timestamp', '$amLog.timestamp'] },
+              3600000 // Convert ms to hours
+            ]
+          }
+        }
+      },
+      {
+        $match: {
+          hours: { $gt: 0, $lt: 24 } // Filter out invalid hours
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgHours: { $avg: '$hours' },
+          totalHours: { $sum: '$hours' }
+        }
+      }
+    ]);
+
+    const avgHoursPerDay = completeLogsWithHours.length > 0 
+      ? parseFloat(completeLogsWithHours[0].avgHours.toFixed(1)) 
+      : 0;
+    const totalHoursLogged = completeLogsWithHours.length > 0 
+      ? parseFloat(completeLogsWithHours[0].totalHours.toFixed(1)) 
+      : 0;
+
+    // Completion rate trend (last 7 days)
+    const completionTrend = await DailyLog.aggregate([
+      {
+        $match: {
+          date: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+          total: { $sum: 1 },
+          complete: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ['$amLog', null] },
+                    { $ne: ['$pmLog', null] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          date: '$_id',
+          rate: {
+            $cond: [
+              { $gt: ['$total', 0] },
+              { $multiply: [{ $divide: ['$complete', '$total'] }, 100] },
+              0
+            ]
+          }
+        }
+      }
+    ]);
 
     // Attendance heatmap data (last 90 days)
     const ninetyDaysAgo = new Date();
@@ -210,36 +346,55 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       stats: {
+        // Core metrics
         totalInterns,
         totalLogs,
-        recentLogs,
         todayLogs,
         completeLogs,
         completionRate: parseFloat(completionRate),
+        
+        // Today's attendance
+        internsLoggedToday: internsLoggedTodayCount,
+        internsNotLoggedToday,
+        missingToday,
+        
+        // Late submissions
+        lateSubmissionsToday,
+        lateSubmissionsWeek,
+        onTimeLogs,
+        lateLogs,
+        
+        // Hours
+        avgHoursPerDay,
+        totalHoursLogged,
+        
+        // Trends
         dailyTrends: dailyTrends.map(d => ({
           date: d._id,
           count: d.count,
           complete: d.complete
         })),
-        weeklyActivity: weeklyActivity.map(w => ({
-          week: `Week ${w._id.week}, ${w._id.year}`,
-          count: w.count
+        completionTrend: completionTrend.map(c => ({
+          date: c.date,
+          rate: parseFloat(c.rate.toFixed(1))
         })),
-        monthlyActivity: monthlyActivity.map(m => ({
-          month: `${m._id.year}-${String(m._id.month).padStart(2, '0')}`,
-          count: m.count
-        })),
+        
+        // Breakdowns
         companyBreakdown: companyBreakdown.map(c => ({
           company: c.company || 'Unknown',
           logCount: c.logCount,
           internCount: c.internCount
         })),
+        
+        // Activity
         internActivity: internActivity.map(i => ({
           internId: i.internId.toString(),
           internName: i.internName,
           logCount: i.logCount,
           lastActivity: i.lastActivity
         })),
+        
+        // Heatmap
         heatmapData: heatmapData.map(h => ({
           date: h._id,
           count: h.count

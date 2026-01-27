@@ -13,7 +13,8 @@ import {
   Trash2,
   Edit2,
   ChevronRight,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react';
 import ListContainer from '@/components/lists/ListContainer';
 import { cloudinaryThumbnail } from '@/lib/cloudinary-thumbnail';
@@ -23,9 +24,10 @@ interface InternListProps {
   loading: boolean;
   onDelete: (id: string) => void;
   onEdit: (intern: Intern) => void;
+  onViewProfile: (intern: Intern) => void;
 }
 
-export default function InternList({ interns, loading, onDelete, onEdit }: InternListProps) {
+export default function InternList({ interns, loading, onDelete, onEdit, onViewProfile }: InternListProps) {
   return (
     <ListContainer 
       loading={loading && interns.length === 0}
@@ -42,8 +44,11 @@ export default function InternList({ interns, loading, onDelete, onEdit }: Inter
           className="group px-6 py-5 hover:bg-black/[0.02] transition-all duration-200"
         >
           <div className="flex items-center justify-between">
-            {/* Left Section - Avatar & Basic Info */}
-            <div className="flex items-center space-x-5 flex-1 min-w-0">
+            {/* Left Section - Avatar & Basic Info (Clickable) */}
+            <button
+              onClick={() => onViewProfile(intern)}
+              className="flex items-center space-x-5 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+            >
               {intern.profilePicture ? (
                 <div className="w-12 h-12 rounded-2xl overflow-hidden flex-shrink-0 group-hover:scale-110 transition-transform duration-300 border-2 border-macos-blue/20">
                   <img
@@ -83,7 +88,7 @@ export default function InternList({ interns, loading, onDelete, onEdit }: Inter
                   )}
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Middle Section - Company Info */}
             <div className="hidden lg:flex flex-col space-y-1.5 px-8 border-l border-black/5 flex-1 max-w-[300px]">
@@ -101,9 +106,18 @@ export default function InternList({ interns, loading, onDelete, onEdit }: Inter
 
             {/* Right Section - Actions */}
             <div className="flex items-center space-x-2 ml-6">
+              <button
+                onClick={() => onViewProfile(intern)}
+                className="flex items-center space-x-2 px-4 py-2 text-sm font-bold text-macos-blue hover:bg-macos-blue/10 rounded-xl transition-all duration-200"
+                title="View Profile"
+              >
+                <Eye className="w-4 h-4" />
+                <span className="hidden sm:inline">View</span>
+              </button>
+              
               <Link
                 href={`/main/logs?internId=${intern._id}`}
-                className="flex items-center space-x-2 px-4 py-2 text-sm font-bold text-macos-blue hover:bg-macos-blue/10 rounded-xl transition-all duration-200"
+                className="flex items-center space-x-2 px-4 py-2 text-sm font-bold text-gray-600 hover:bg-black/5 rounded-xl transition-all duration-200"
               >
                 <FileText className="w-4 h-4" />
                 <span className="hidden sm:inline">Logs</span>

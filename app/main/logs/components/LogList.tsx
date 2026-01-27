@@ -1,17 +1,20 @@
 'use client';
 
-import { format } from 'date-fns';
+import { format, isToday, startOfDay } from 'date-fns';
 import { DailyLog } from '../types';
 import { getLogDateKey, parseLocalDate } from '@/lib/date';
-import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMemo, useState, useEffect } from 'react';
 import { 
   User, 
   Calendar, 
   CheckCircle2, 
   XCircle, 
   Eye, 
-  ChevronRight 
+  ChevronRight,
+  ChevronDown,
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import ListContainer from '@/components/lists/ListContainer';
 import { cloudinaryThumbnail } from '@/lib/cloudinary-thumbnail';
@@ -32,6 +35,8 @@ interface MergedLog {
   amLog?: DailyLog['amLog'];
   pmLog?: DailyLog['pmLog'];
   primaryId: string;   // for Details
+  amLate?: boolean;
+  pmLate?: boolean;
 }
 
 interface LogListProps {
@@ -41,15 +46,24 @@ interface LogListProps {
 }
 
 export default function LogList({ logs, loading, onView }: LogListProps) {
-  const StatusBadge = ({ submitted, period }: { submitted: boolean, period: 'AM' | 'PM' }) => (
+  const StatusBadge = ({ submitted, period, isLate }: { submitted: boolean, period: 'AM' | 'PM', isLate?: boolean }) => (
     <div className={cn(
       "flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all",
-      submitted 
-        ? "bg-green-100 text-green-700" 
-        : "bg-gray-100 text-gray-500"
+      !submitted 
+        ? "bg-gray-100 text-gray-500"
+        : isLate
+        ? "bg-amber-100 text-amber-700 ring-1 ring-amber-300"
+        : "bg-green-100 text-green-700"
     )}>
-      {submitted ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5 opacity-50" />}
+      {!submitted ? (
+        <XCircle className="w-3.5 h-3.5 opacity-50" />
+      ) : isLate ? (
+        <Clock className="w-3.5 h-3.5" />
+      ) : (
+        <CheckCircle2 className="w-3.5 h-3.5" />
+      )}
       <span>{period === 'AM' ? 'Time In' : 'Time Out'}</span>
+      {isLate && <span className="text-[9px]">(Late)</span>}
     </div>
   );
 
@@ -94,12 +108,49 @@ export default function LogList({ logs, loading, onView }: LogListProps) {
           amLog,
           pmLog,
           primaryId: primary._id,
+          amLate: amLog?.submittedLate,
+          pmLate: pmLog?.submittedLate,
         });
       });
       result.push({ dateKey, merged: mergedList });
     }
     return result;
   }, [logs]);
+
+  // Track which date groups are expanded - today is expanded by default, past dates collapsed
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+
+  // Initialize expanded state when logs change - expand today, collapse past
+  useEffect(() => {
+    const todayKey = format(new Date(), 'yyyy-MM-dd');
+    const initialExpanded = new Set<string>();
+    
+    logsByDate.forEach(entry => {
+      const entryDate = parseLocalDate(entry.dateKey);
+      if (isToday(entryDate)) {
+        initialExpanded.add(entry.dateKey);
+      }
+    });
+    
+    // If no today entry, expand the most recent date
+    if (initialExpanded.size === 0 && logsByDate.length > 0) {
+      initialExpanded.add(logsByDate[0].dateKey);
+    }
+    
+    setExpandedDates(initialExpanded);
+  }, [logsByDate]);
+
+  const toggleDateExpanded = (dateKey: string) => {
+    setExpandedDates(prev => {
+      const next = new Set(prev);
+      if (next.has(dateKey)) {
+        next.delete(dateKey);
+      } else {
+        next.add(dateKey);
+      }
+      return next;
+    });
+  };
 
   return (
     <ListContainer
@@ -110,81 +161,128 @@ export default function LogList({ logs, loading, onView }: LogListProps) {
     >
       {logsByDate.map((entry, dateIndex) => {
         const date = parseLocalDate(entry.dateKey);
+        const isTodayDate = isToday(date);
+        const isExpanded = expandedDates.has(entry.dateKey);
+        const entryCount = entry.merged.length;
+        
         return (
           <div key={entry.dateKey} className="border-b border-gray-100 last:border-b-0">
-            {/* Date Header */}
-            <motion.div
+            {/* Date Header - Clickable */}
+            <motion.button
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: dateIndex * 0.05 }}
-              className="px-6 py-4 bg-gray-50/50 border-b border-gray-100"
+              onClick={() => toggleDateExpanded(entry.dateKey)}
+              className={cn(
+                "w-full px-6 py-4 flex items-center justify-between transition-colors",
+                isTodayDate ? "bg-macos-blue/5" : "bg-gray-50/50",
+                "hover:bg-black/[0.03]"
+              )}
             >
-              <div className="flex items-center space-x-2">
-                <div className="w-10 h-10 rounded-xl bg-macos-blue/10 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-macos-blue" />
+              <div className="flex items-center space-x-3">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center",
+                  isTodayDate ? "bg-macos-blue text-white" : "bg-macos-blue/10"
+                )}>
+                  <Calendar className={cn("w-5 h-5", isTodayDate ? "text-white" : "text-macos-blue")} />
                 </div>
                 <div className="flex items-center space-x-2">
                   <h3 className="text-base font-bold text-gray-900">
-                    {format(date, 'EEEE, MMMM do')}
+                    {isTodayDate ? 'Today' : format(date, 'EEEE, MMMM do')}
                   </h3>
+                  {isTodayDate && (
+                    <span className="text-sm font-medium text-gray-500">
+                      {format(date, 'MMMM do')}
+                    </span>
+                  )}
                   <span className="px-2 py-0.5 rounded-md bg-black/5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                     {format(date, 'yyyy')}
                   </span>
+                  {isTodayDate && (
+                    <span className="px-2 py-0.5 rounded-md bg-macos-blue text-white text-[10px] font-bold uppercase tracking-wider">
+                      Live
+                    </span>
+                  )}
                 </div>
               </div>
-            </motion.div>
+              
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-semibold text-gray-500">
+                  {entryCount} {entryCount === 1 ? 'entry' : 'entries'}
+                </span>
+                <ChevronDown className={cn(
+                  "w-5 h-5 text-gray-400 transition-transform duration-200",
+                  isExpanded && "rotate-180"
+                )} />
+              </div>
+            </motion.button>
 
-            {/* Student Entries for this Date (one per intern, AM+PM combined) */}
-            {entry.merged.map((m, logIndex) => (
-              <motion.div
-                key={`${m.dateKey}-${m.internId}`}
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: dateIndex * 0.05 + logIndex * 0.03 }}
-                className="group px-6 py-4 hover:bg-black/[0.02] transition-all duration-200"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <div className="flex items-center text-sm font-semibold text-gray-600 flex-1 min-w-0">
-                      {m.profilePicture ? (
-                        <div className="w-6 h-6 rounded-full overflow-hidden border border-macos-blue/20 mr-1.5 flex-shrink-0">
-                          <img
-                            src={cloudinaryThumbnail(m.profilePicture, 24, 24)}
-                            alt={m.internName}
-                            width={24}
-                            height={24}
-                            className="w-full h-full object-cover object-center"
-                          />
-                        </div>
-                      ) : (
-                        <User className="w-3.5 h-3.5 mr-1.5 opacity-70 flex-shrink-0" />
-                      )}
-                      <span className="truncate">{m.internName}</span>
-                      <span className="mx-2 opacity-30 flex-shrink-0">•</span>
-                      <span className="text-xs font-medium opacity-70 truncate">{m.studentId}</span>
+            {/* Student Entries for this Date (one per intern, AM+PM combined) - Collapsible */}
+            <AnimatePresence initial={false}>
+              {isExpanded && entry.merged.map((m, logIndex) => {
+              const hasLateSubmission = m.amLate || m.pmLate;
+              return (
+                <motion.div
+                  key={`${m.dateKey}-${m.internId}`}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={cn(
+                    "group px-6 py-4 hover:bg-black/[0.02] transition-all duration-200 overflow-hidden",
+                    hasLateSubmission && "bg-amber-50/50 border-l-4 border-l-amber-400"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 flex-1 min-w-0">
+                      <div className="flex items-center text-sm font-semibold text-gray-600 flex-1 min-w-0">
+                        {m.profilePicture ? (
+                          <div className="w-6 h-6 rounded-full overflow-hidden border border-macos-blue/20 mr-1.5 flex-shrink-0">
+                            <img
+                              src={cloudinaryThumbnail(m.profilePicture, 24, 24)}
+                              alt={m.internName}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover object-center"
+                            />
+                          </div>
+                        ) : (
+                          <User className="w-3.5 h-3.5 mr-1.5 opacity-70 flex-shrink-0" />
+                        )}
+                        <span className="truncate">{m.internName}</span>
+                        <span className="mx-2 opacity-30 flex-shrink-0">•</span>
+                        <span className="text-xs font-medium opacity-70 truncate">{m.studentId}</span>
+                        {hasLateSubmission && (
+                          <span className="ml-3 flex items-center space-x-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider flex-shrink-0">
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>Late</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="hidden md:flex items-center space-x-3 px-8">
+                      <StatusBadge submitted={!!m.amLog} period="AM" isLate={m.amLate} />
+                      <StatusBadge submitted={!!m.pmLog} period="PM" isLate={m.pmLate} />
+                    </div>
+
+                    <div className="flex items-center space-x-2 ml-6">
+                      <button
+                        onClick={() => onView(m.primaryId)}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm font-bold text-macos-blue hover:bg-macos-blue/10 rounded-xl transition-all duration-200"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span className="hidden sm:inline">Details</span>
+                      </button>
+                      <div className="pl-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                      </div>
                     </div>
                   </div>
-
-                  <div className="hidden md:flex items-center space-x-3 px-8">
-                    <StatusBadge submitted={!!m.amLog} period="AM" />
-                    <StatusBadge submitted={!!m.pmLog} period="PM" />
-                  </div>
-
-                  <div className="flex items-center space-x-2 ml-6">
-                    <button
-                      onClick={() => onView(m.primaryId)}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm font-bold text-macos-blue hover:bg-macos-blue/10 rounded-xl transition-all duration-200"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span className="hidden sm:inline">Details</span>
-                    </button>
-                    <div className="pl-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ChevronRight className="w-4 h-4 text-gray-300" />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
+            </AnimatePresence>
           </div>
         );
       })}

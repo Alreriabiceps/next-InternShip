@@ -11,21 +11,17 @@ import {
   X, 
   MapPin, 
   Clock, 
-  Monitor, 
   Cloud, 
   Info, 
   Maximize2, 
   ExternalLink, 
-  CheckCircle2,
   Calendar,
   Smartphone,
-  ShieldCheck,
-  Signal, 
-  Battery, 
-  Globe, 
   XCircle,
   User,
-  Activity
+  Activity,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -82,6 +78,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
   const [activeTab, setActiveTab] = useState<'AM' | 'PM'>('AM');
   const [placeDetails, setPlaceDetails] = useState<{ municipality: string | null; barangay: string | null } | null>(null);
   const [placeDetailsLoading, setPlaceDetailsLoading] = useState(false);
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
 
@@ -232,14 +229,12 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
       );
     }
 
-    // TypeScript now knows log is not null because of the early return above
-    const currentLog = log;
-
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Visual Content Column */}
-        <div className="space-y-6">
-          <div className="relative aspect-[4/3] w-full bg-black/5 rounded-[32px] overflow-hidden group shadow-xl">
+      <div className="space-y-6">
+        {/* Main Content - Clean Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Photo */}
+          <div className="relative aspect-[4/3] w-full bg-black/5 rounded-[28px] overflow-hidden group shadow-xl">
             <Image
               src={imageLog.imageUrl}
               alt={`${period} log image`}
@@ -247,7 +242,7 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
               className="object-cover group-hover:scale-105 transition-transform duration-700"
               unoptimized
             />
-            <div className="absolute top-4 right-4 flex space-x-2">
+            <div className="absolute top-4 right-4">
               <a 
                 href={imageLog.imageUrl} 
                 target="_blank" 
@@ -256,219 +251,230 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                 <Maximize2 className="w-4 h-4" />
               </a>
             </div>
-            <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
-              <div className="flex items-center flex-wrap gap-2 text-white">
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 opacity-70" />
-                  <span className="text-sm font-bold">{format(new Date(imageLog.timestamp), 'h:mm a')}</span>
-                </div>
-                {imageLog.submittedLate && (
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold uppercase tracking-wider">
-                    Submitted late
-                  </span>
-                )}
+            {imageLog.submittedLate && (
+              <div className="absolute top-4 left-4">
+                <span className="px-3 py-1 rounded-lg bg-amber-500/90 text-white text-[11px] font-bold uppercase tracking-wider">
+                  Submitted late
+                </span>
               </div>
-            </div>
+            )}
           </div>
-          
-          <div className="h-64 w-full rounded-[32px] overflow-hidden border border-black/5 shadow-lg relative">
+
+          {/* Map - Bigger */}
+          <div className="h-full min-h-[280px] lg:min-h-0 w-full rounded-[28px] overflow-hidden border border-black/5 shadow-lg relative">
             <div
               ref={mapRef}
               className="w-full h-full"
               style={{ zIndex: 0 }}
             />
-            <div className="absolute top-4 left-4 p-3 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-black/10 z-10 pointer-events-none max-w-[90%]">
-              <div className="flex items-start space-x-2">
-                <MapPin className="w-4 h-4 text-macos-blue flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-[12px] font-bold text-gray-900 leading-tight block">
-                    {(placeDetails?.barangay || placeDetails?.municipality)
-                      ? [placeDetails.barangay, placeDetails.municipality].filter(Boolean).join(', ')
-                      : imageLog.location.address || 'Location Coordinates Pinpointed'}
-                  </span>
-                  <span className="text-[10px] font-semibold text-gray-600 mt-1 block">
-                    {imageLog.location.latitude.toFixed(6)}, {imageLog.location.longitude.toFixed(6)}
-                  </span>
-                </div>
-              </div>
-            </div>
             <a
               href={googleMapsUrl(imageLog.location.latitude, imageLog.location.longitude)}
               target="_blank"
               rel="noopener noreferrer"
-              className="absolute bottom-4 right-4 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-black/5 hover:bg-white transition-all z-10 pointer-events-auto"
+              className="absolute bottom-4 right-4 p-2.5 bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-black/5 hover:bg-white transition-all z-10"
             >
               <ExternalLink className="w-4 h-4 text-macos-blue" />
             </a>
           </div>
         </div>
 
-        {/* Data Content Column */}
-        <div className="space-y-6">
-          <DetailSection title="Activity Details" icon={Clock}>
-            <DetailItem 
-              label="Date" 
-              value={format(new Date(imageLog.timestamp), 'MMMM d, yyyy')} 
-            />
-            <DetailItem 
-              label="Time" 
-              value={format(new Date(imageLog.timestamp), 'h:mm a')} 
-            />
-            {imageLog.hoursWorked !== undefined && (
-              <DetailItem label="Reported Hours" value={`${imageLog.hoursWorked} hours`} />
-            )}
-            {imageLog.activityType && (
-              <DetailItem label="Activity Type" value={imageLog.activityType} />
-            )}
-          </DetailSection>
-
-          <DetailSection title="Exact Location" icon={MapPin}>
-            <DetailItem 
-              label="Full Address" 
-              value={imageLog.location.address || 'Address not available'} 
-            />
-            <DetailItem 
-              label="Municipality" 
-              value={placeDetails?.municipality ?? (placeDetailsLoading ? 'Loading...' : '—')} 
-            />
-            <DetailItem 
-              label="Barangay" 
-              value={placeDetails?.barangay ?? (placeDetailsLoading ? 'Loading...' : '—')} 
-            />
-            <DetailItem 
-              label="Coordinates (Lat, Long)" 
-              value={`${imageLog.location.latitude.toFixed(6)}, ${imageLog.location.longitude.toFixed(6)}`} 
-            />
-            <DetailItem 
-              label="Altitude" 
-              value={imageLog.location.altitude ? `${imageLog.location.altitude.toFixed(1)}m` : 'N/A'} 
-            />
-            <DetailItem 
-              label="Accuracy" 
-              value={imageLog.location.accuracy ? `±${imageLog.location.accuracy.toFixed(1)}m` : 'N/A'} 
-            />
-            <DetailItem 
-              label="Device Speed" 
-              value={imageLog.location.speed ? `${(imageLog.location.speed * 3.6).toFixed(1)} km/h` : 'Stationary'} 
-            />
-          </DetailSection>
-
-          <DetailSection title="System Information" icon={Smartphone}>
-            {imageLog.deviceInfo && (
-              <DetailItem label="Device Model" value={imageLog.deviceInfo.model} subValue={imageLog.deviceInfo.osVersion} />
-            )}
-            <DetailItem 
-              label="Network Status" 
-              value={imageLog.networkType || 'Unknown'}
-            />
-            {imageLog.wifiSSID && (
-              <DetailItem 
-                label="WiFi Network" 
-                value={imageLog.wifiSSID}
-              />
-            )}
-            {imageLog.signalStrength !== undefined && (
-              <DetailItem 
-                label="Signal Strength" 
-                value={`${imageLog.signalStrength} dBm`}
-              />
-            )}
-            {imageLog.networkSpeed !== undefined && (
-              <DetailItem 
-                label="Network Speed" 
-                value={`${imageLog.networkSpeed.toFixed(2)} Mbps`}
-              />
-            )}
-            <DetailItem 
-              label="Battery Level" 
-              value={imageLog.batteryLevel !== undefined ? `${imageLog.batteryLevel}%` : 'N/A'} 
-            />
-            {imageLog.deviceOrientation && (
-              <DetailItem 
-                label="Device Orientation" 
-                value={imageLog.deviceOrientation === 'portrait' ? 'Portrait' : 'Landscape'}
-              />
-            )}
-            {imageLog.availableStorage !== undefined && (
-              <DetailItem 
-                label="Available Storage" 
-                value={`${(imageLog.availableStorage / (1024 * 1024 * 1024)).toFixed(2)} GB`}
-              />
-            )}
-            {imageLog.screenBrightness !== undefined && (
-              <DetailItem 
-                label="Screen Brightness" 
-                value={`${imageLog.screenBrightness}%`}
-              />
-            )}
-            <DetailItem 
-              label="IP Address" 
-              value={imageLog.ipAddress || 'Not logged'}
-            />
-          </DetailSection>
-
-          <DetailSection title="Activity Metrics" icon={Activity}>
-            {imageLog.sessionDuration !== undefined && (
-              <DetailItem 
-                label="Session Duration" 
-                value={`${Math.floor(imageLog.sessionDuration / 60)}m ${imageLog.sessionDuration % 60}s`}
-                subValue="Time in app before submission"
-              />
-            )}
-            {imageLog.timeSinceLastLog !== undefined && (
-              <DetailItem 
-                label="Time Since Last Log" 
-                value={imageLog.timeSinceLastLog < 60 
-                  ? `${imageLog.timeSinceLastLog}s`
-                  : imageLog.timeSinceLastLog < 3600
-                  ? `${Math.floor(imageLog.timeSinceLastLog / 60)}m`
-                  : `${Math.floor(imageLog.timeSinceLastLog / 3600)}h ${Math.floor((imageLog.timeSinceLastLog % 3600) / 60)}m`
-                }
-                subValue="Activity pattern indicator"
-              />
-            )}
-            {imageLog.captureTime !== undefined && (
-              <DetailItem 
-                label="Capture Time" 
-                value={`${imageLog.captureTime}s`}
-                subValue="Time from opening camera to submission"
-              />
-            )}
-            {imageLog.retakeCount !== undefined && imageLog.retakeCount > 0 && (
-              <DetailItem 
-                label="Photo Retakes" 
-                value={`${imageLog.retakeCount} ${imageLog.retakeCount === 1 ? 'retake' : 'retakes'}`}
-              />
-            )}
-          </DetailSection>
-
-          <DetailSection title="Environment & Media" icon={Cloud}>
-            {imageLog.weatherData && (
-              <DetailItem 
-                label="Weather" 
-                value={imageLog.weatherData.conditions || 'Cloudy'} 
-                subValue={imageLog.weatherData.temperature !== undefined ? `${imageLog.weatherData.temperature}°C` : undefined}
-              />
-            )}
-            <DetailItem 
-              label="Image Metadata" 
-              value={imageLog.imageDimensions ? `${imageLog.imageDimensions.width} × ${imageLog.imageDimensions.height}` : 'Standard'}
-              subValue={imageLog.imageFileSize ? `${(imageLog.imageFileSize / 1024).toFixed(1)} KB` : undefined}
-            />
-            {imageLog.timezone && (
-              <DetailItem label="Timezone" value={imageLog.timezone} />
-            )}
-          </DetailSection>
-
-          {imageLog.notes && (
-            <div className="p-5 bg-macos-blue/5 border border-macos-blue/10 rounded-[24px]">
-              <h6 className="text-[10px] font-bold text-macos-blue uppercase tracking-widest mb-2 flex items-center">
-                <Info className="w-3 h-3 mr-1.5" /> Intern Notes
-              </h6>
-              <p className="text-sm text-gray-700 italic font-medium">"{imageLog.notes}"</p>
+        {/* Essential Info Card */}
+        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-black/5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Date */}
+            <div className="space-y-1">
+              <div className="flex items-center space-x-1.5 text-gray-400">
+                <Calendar className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider">Date</span>
+              </div>
+              <p className="text-base font-bold text-gray-900">{format(new Date(imageLog.timestamp), 'MMM d, yyyy')}</p>
             </div>
-          )}
+
+            {/* Time */}
+            <div className="space-y-1">
+              <div className="flex items-center space-x-1.5 text-gray-400">
+                <Clock className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider">Time</span>
+              </div>
+              <p className="text-base font-bold text-gray-900">{format(new Date(imageLog.timestamp), 'h:mm a')}</p>
+            </div>
+
+            {/* Municipality */}
+            <div className="space-y-1">
+              <div className="flex items-center space-x-1.5 text-gray-400">
+                <MapPin className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider">Municipality</span>
+              </div>
+              <p className="text-base font-bold text-gray-900">
+                {placeDetails?.municipality ?? (placeDetailsLoading ? 'Loading...' : '—')}
+              </p>
+            </div>
+
+            {/* Barangay */}
+            <div className="space-y-1">
+              <div className="flex items-center space-x-1.5 text-gray-400">
+                <MapPin className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider">Barangay</span>
+              </div>
+              <p className="text-base font-bold text-gray-900">
+                {placeDetails?.barangay ?? (placeDetailsLoading ? 'Loading...' : '—')}
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Show More Info Toggle */}
+        <button
+          onClick={() => setShowMoreInfo(!showMoreInfo)}
+          className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-black/[0.03] hover:bg-black/[0.05] rounded-2xl transition-all text-gray-500 font-semibold text-sm"
+        >
+          <span>{showMoreInfo ? 'Hide Details' : 'Show More Info'}</span>
+          {showMoreInfo ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+
+        {/* Expanded Details */}
+        <AnimatePresence>
+          {showMoreInfo && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                {/* Location Details */}
+                <DetailSection title="Location Details" icon={MapPin}>
+                  <DetailItem 
+                    label="Full Address" 
+                    value={imageLog.location.address || 'Address not available'} 
+                  />
+                  <DetailItem 
+                    label="Coordinates" 
+                    value={`${imageLog.location.latitude.toFixed(6)}, ${imageLog.location.longitude.toFixed(6)}`} 
+                  />
+                  <DetailItem 
+                    label="Altitude" 
+                    value={imageLog.location.altitude ? `${imageLog.location.altitude.toFixed(1)}m` : 'N/A'} 
+                  />
+                  <DetailItem 
+                    label="Accuracy" 
+                    value={imageLog.location.accuracy ? `±${imageLog.location.accuracy.toFixed(1)}m` : 'N/A'} 
+                  />
+                  <DetailItem 
+                    label="Device Speed" 
+                    value={imageLog.location.speed ? `${(imageLog.location.speed * 3.6).toFixed(1)} km/h` : 'Stationary'} 
+                  />
+                </DetailSection>
+
+                {/* System Information */}
+                <DetailSection title="System Information" icon={Smartphone}>
+                  {imageLog.deviceInfo && (
+                    <DetailItem label="Device Model" value={imageLog.deviceInfo.model} subValue={imageLog.deviceInfo.osVersion} />
+                  )}
+                  <DetailItem 
+                    label="Network Status" 
+                    value={imageLog.networkType || 'Unknown'}
+                  />
+                  {imageLog.wifiSSID && (
+                    <DetailItem label="WiFi Network" value={imageLog.wifiSSID} />
+                  )}
+                  {imageLog.signalStrength !== undefined && (
+                    <DetailItem label="Signal Strength" value={`${imageLog.signalStrength} dBm`} />
+                  )}
+                  {imageLog.networkSpeed !== undefined && (
+                    <DetailItem label="Network Speed" value={`${imageLog.networkSpeed.toFixed(2)} Mbps`} />
+                  )}
+                  <DetailItem 
+                    label="Battery Level" 
+                    value={imageLog.batteryLevel !== undefined ? `${imageLog.batteryLevel}%` : 'N/A'} 
+                  />
+                  {imageLog.deviceOrientation && (
+                    <DetailItem 
+                      label="Device Orientation" 
+                      value={imageLog.deviceOrientation === 'portrait' ? 'Portrait' : 'Landscape'}
+                    />
+                  )}
+                  {imageLog.availableStorage !== undefined && (
+                    <DetailItem label="Available Storage" value={`${(imageLog.availableStorage / (1024 * 1024 * 1024)).toFixed(2)} GB`} />
+                  )}
+                  {imageLog.screenBrightness !== undefined && (
+                    <DetailItem label="Screen Brightness" value={`${imageLog.screenBrightness}%`} />
+                  )}
+                  <DetailItem label="IP Address" value={imageLog.ipAddress || 'Not logged'} />
+                </DetailSection>
+
+                {/* Activity Metrics */}
+                <DetailSection title="Activity Metrics" icon={Activity}>
+                  {imageLog.hoursWorked !== undefined && (
+                    <DetailItem label="Reported Hours" value={`${imageLog.hoursWorked} hours`} />
+                  )}
+                  {imageLog.activityType && (
+                    <DetailItem label="Activity Type" value={imageLog.activityType} />
+                  )}
+                  {imageLog.sessionDuration !== undefined && (
+                    <DetailItem 
+                      label="Session Duration" 
+                      value={`${Math.floor(imageLog.sessionDuration / 60)}m ${imageLog.sessionDuration % 60}s`}
+                      subValue="Time in app before submission"
+                    />
+                  )}
+                  {imageLog.timeSinceLastLog !== undefined && (
+                    <DetailItem 
+                      label="Time Since Last Log" 
+                      value={imageLog.timeSinceLastLog < 60 
+                        ? `${imageLog.timeSinceLastLog}s`
+                        : imageLog.timeSinceLastLog < 3600
+                        ? `${Math.floor(imageLog.timeSinceLastLog / 60)}m`
+                        : `${Math.floor(imageLog.timeSinceLastLog / 3600)}h ${Math.floor((imageLog.timeSinceLastLog % 3600) / 60)}m`
+                      }
+                      subValue="Activity pattern indicator"
+                    />
+                  )}
+                  {imageLog.captureTime !== undefined && (
+                    <DetailItem 
+                      label="Capture Time" 
+                      value={`${imageLog.captureTime}s`}
+                      subValue="Time from opening camera to submission"
+                    />
+                  )}
+                  {imageLog.retakeCount !== undefined && imageLog.retakeCount > 0 && (
+                    <DetailItem label="Photo Retakes" value={`${imageLog.retakeCount} ${imageLog.retakeCount === 1 ? 'retake' : 'retakes'}`} />
+                  )}
+                </DetailSection>
+
+                {/* Environment & Media */}
+                <DetailSection title="Environment & Media" icon={Cloud}>
+                  {imageLog.weatherData && (
+                    <DetailItem 
+                      label="Weather" 
+                      value={imageLog.weatherData.conditions || 'Cloudy'} 
+                      subValue={imageLog.weatherData.temperature !== undefined ? `${imageLog.weatherData.temperature}°C` : undefined}
+                    />
+                  )}
+                  <DetailItem 
+                    label="Image Metadata" 
+                    value={imageLog.imageDimensions ? `${imageLog.imageDimensions.width} × ${imageLog.imageDimensions.height}` : 'Standard'}
+                    subValue={imageLog.imageFileSize ? `${(imageLog.imageFileSize / 1024).toFixed(1)} KB` : undefined}
+                  />
+                  {imageLog.timezone && (
+                    <DetailItem label="Timezone" value={imageLog.timezone} />
+                  )}
+                </DetailSection>
+
+                {/* Intern Notes */}
+                {imageLog.notes && (
+                  <div className="lg:col-span-2 p-5 bg-macos-blue/5 border border-macos-blue/10 rounded-[24px]">
+                    <h6 className="text-[10px] font-bold text-macos-blue uppercase tracking-widest mb-2 flex items-center">
+                      <Info className="w-3 h-3 mr-1.5" /> Intern Notes
+                    </h6>
+                    <p className="text-sm text-gray-700 italic font-medium">"{imageLog.notes}"</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   };
@@ -519,67 +525,64 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 40 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="relative w-full max-w-6xl max-h-[90vh] bg-[#F2F2F7] rounded-[40px] shadow-[0_32px_128px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col pointer-events-auto"
+                  className="relative w-full max-w-4xl max-h-[90vh] bg-[#F2F2F7] rounded-[32px] shadow-[0_32px_128px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col pointer-events-auto"
                 >
                   {/* Header */}
-                  <div className="px-10 py-8 bg-white/50 backdrop-blur-xl border-b border-black/5 flex items-center justify-between">
-                    <div className="flex items-center space-x-6">
-                      <div className="w-14 h-14 bg-macos-blue rounded-[20px] shadow-lg shadow-macos-blue/20 flex items-center justify-center">
-                        <Calendar className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-                          {formatLogDate(logData.date, 'PPPP')}
-                        </h3>
-                        <div className="flex items-center mt-1 space-x-3">
-                          {(logData.internId as DailyLog['internId']).profilePicture ? (
-                            <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-macos-blue/20 flex-shrink-0">
-                              <img
-                                src={cloudinaryThumbnail((logData.internId as DailyLog['internId']).profilePicture!, 24, 24)}
-                                alt={logData.internId.name}
-                                width={24}
-                                height={24}
-                                className="w-full h-full object-cover object-center"
-                              />
-                            </div>
-                          ) : (
-                            <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                          )}
-                          <span className="text-sm font-semibold text-gray-500">{logData.internId.name}</span>
-                          <span className="w-1 h-1 rounded-full bg-gray-300" />
-                          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{logData.internId.studentId}</span>
+                  <div className="px-8 py-5 bg-white/50 backdrop-blur-xl border-b border-black/5 flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      {(logData.internId as DailyLog['internId']).profilePicture ? (
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-macos-blue/20 flex-shrink-0">
+                          <img
+                            src={cloudinaryThumbnail((logData.internId as DailyLog['internId']).profilePicture!, 40, 40)}
+                            alt={logData.internId.name}
+                            width={40}
+                            height={40}
+                            className="w-full h-full object-cover object-center"
+                          />
                         </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-macos-blue/10 flex items-center justify-center">
+                          <User className="w-5 h-5 text-macos-blue" />
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 tracking-tight">
+                          {logData.internId.name}
+                        </h3>
+                        <p className="text-xs font-medium text-gray-500">
+                          {formatLogDate(logData.date, 'PPPP')}
+                        </p>
                       </div>
                     </div>
                     <button
                       onClick={onClose}
-                      className="p-3 bg-black/5 hover:bg-black/10 rounded-full transition-all active:scale-90"
+                      className="p-2.5 bg-black/5 hover:bg-black/10 rounded-full transition-all active:scale-90"
                     >
-                      <X className="w-6 h-6 text-gray-500" />
+                      <X className="w-5 h-5 text-gray-500" />
                     </button>
                   </div>
 
                   {/* Tab Navigation with Total Duration */}
-                  <div className="px-10 py-4 flex items-center justify-between bg-black/[0.02] border-b border-black/5">
-                    <div className="flex items-center space-x-2">
+                  <div className="px-8 py-3 flex items-center justify-between bg-black/[0.02] border-b border-black/5">
+                    <div className="flex items-center space-x-1 p-1 bg-black/5 rounded-xl">
                       <button
-                        onClick={() => setActiveTab('AM')}
+                        onClick={() => { setActiveTab('AM'); setShowMoreInfo(false); }}
                         className={cn(
-                          "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                          "px-5 py-1.5 rounded-lg text-sm font-bold transition-all",
                           activeTab === 'AM' 
-                            ? "bg-macos-blue text-white shadow-lg shadow-macos-blue/20" 
-                            : "text-gray-500 hover:bg-black/5"
+                            ? "bg-white text-gray-900 shadow-sm" 
+                            : "text-gray-500 hover:text-gray-700"
                         )}
                       >
                         Time In
                       </button>
                       <button
-                        onClick={() => setActiveTab('PM')}
+                        onClick={() => { setActiveTab('PM'); setShowMoreInfo(false); }}
                         className={cn(
-                          "px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                          "px-5 py-1.5 rounded-lg text-sm font-bold transition-all",
                           activeTab === 'PM' 
-                            ? "bg-macos-blue text-white shadow-lg shadow-macos-blue/20" 
-                            : "text-gray-500 hover:bg-black/5"
+                            ? "bg-white text-gray-900 shadow-sm" 
+                            : "text-gray-500 hover:text-gray-700"
                         )}
                       >
                         Time Out
@@ -587,20 +590,17 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                     </div>
                     {/* Total Duration - Only show when PM log exists */}
                     {logData.amLog && logData.pmLog && (
-                      <div className="flex items-center space-x-2 px-4 py-2 bg-macos-blue/10 rounded-xl">
-                        <Clock className="w-4 h-4 text-macos-blue" />
-                        <div className="flex items-baseline space-x-1">
-                          <span className="text-xs font-semibold text-gray-600">Total:</span>
-                          <span className="text-sm font-bold text-gray-900">
-                            {((new Date(logData.pmLog.timestamp).getTime() - new Date(logData.amLog.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1)}h
-                          </span>
-                        </div>
+                      <div className="flex items-center space-x-2 px-3 py-1.5 bg-macos-blue/10 rounded-lg">
+                        <Clock className="w-3.5 h-3.5 text-macos-blue" />
+                        <span className="text-sm font-bold text-gray-900">
+                          {((new Date(logData.pmLog.timestamp).getTime() - new Date(logData.amLog.timestamp).getTime()) / (1000 * 60 * 60)).toFixed(1)}h
+                        </span>
                       </div>
                     )}
                   </div>
 
                   {/* Content Area */}
-                  <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={activeTab}
@@ -615,18 +615,8 @@ export default function LogDetailModal({ log, isOpen, onClose }: LogDetailModalP
                   </div>
 
                   {/* Footer Information */}
-                  <div className="px-10 py-6 bg-white/30 backdrop-blur-xl border-t border-black/5 flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center">
-                        <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-macos-green" />
-                        System Verified Log
-                      </div>
-                      <div className="flex items-center">
-                        <Globe className="w-3.5 h-3.5 mr-1.5" />
-                        Origin: {logData.amLog?.ipAddress || logData.pmLog?.ipAddress || 'Unknown'}
-                      </div>
-                    </div>
-                    <div>ID: {logData._id}</div>
+                  <div className="px-10 py-4 bg-white/30 backdrop-blur-xl border-t border-black/5 flex items-center justify-center text-[10px] font-semibold text-gray-400">
+                    Log ID: {logData._id}
                   </div>
                 </motion.div>
               </div>

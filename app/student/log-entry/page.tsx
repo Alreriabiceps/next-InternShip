@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStudentAuth } from '@/contexts/StudentAuthContext';
 import { studentApi } from '@/lib/student-api';
@@ -18,7 +18,7 @@ interface Location {
   address?: string;
 }
 
-export default function LogEntryPage() {
+function LogEntryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useStudentAuth();
@@ -233,5 +233,17 @@ export default function LogEntryPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function LogEntryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LogEntryContent />
+    </Suspense>
   );
 }

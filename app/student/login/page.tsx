@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStudentAuth } from '@/contexts/StudentAuthContext';
-import { setRememberMe, getRememberedCredentials } from '@/lib/student-storage';
+import { setRememberMe as saveRememberMe, getRememberedCredentials } from '@/lib/student-storage';
 import { Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -83,7 +83,7 @@ export default function StudentLoginPage() {
       const response = await login(studentId, password);
       
       // Save credentials if remember me is checked
-      setRememberMe(rememberMe, studentId, password);
+      saveRememberMe(rememberMe, studentId, password);
 
       // Redirect based on user state
       if (response.intern.mustChangePassword || !response.intern.profilePicture) {

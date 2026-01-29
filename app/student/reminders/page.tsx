@@ -6,6 +6,19 @@ import { Bell, Clock, AlertCircle, CheckCircle2, Flame, Calendar, BarChart3, Inf
 import { motion } from 'framer-motion';
 import TimePicker from '@/components/student/TimePicker';
 
+interface ReminderPrefs {
+  enabled: boolean;
+  timeInHour: number;
+  timeInMinute: number;
+  timeOutHour: number;
+  timeOutMinute: number;
+  missedTimeInEnabled: boolean;
+  incompleteDayEnabled: boolean;
+  streakNudgeEnabled: boolean;
+  mondayNudgeEnabled: boolean;
+  weeklySummaryEnabled: boolean;
+}
+
 function formatTimeDisplay(h: number, m: number): string {
   const period = h >= 12 ? 'PM' : 'AM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -19,22 +32,22 @@ function addMinutesToTime(hour: number, minute: number, deltaMins: number): { ho
   return { hour: h, minute: m };
 }
 
-function getMissedTimeInDisplay(prefs: any): string {
+function getMissedTimeInDisplay(prefs: ReminderPrefs): string {
   const { hour, minute } = addMinutesToTime(prefs.timeInHour, prefs.timeInMinute, 2 * 60);
   return formatTimeDisplay(hour, minute);
 }
 
-function getIncompleteDayDisplay(prefs: any): string {
+function getIncompleteDayDisplay(prefs: ReminderPrefs): string {
   return formatTimeDisplay(prefs.timeOutHour, prefs.timeOutMinute);
 }
 
-function getStreakNudgeDisplay(prefs: any): string {
+function getStreakNudgeDisplay(prefs: ReminderPrefs): string {
   const { hour, minute } = addMinutesToTime(prefs.timeInHour, prefs.timeInMinute, 30);
   return formatTimeDisplay(hour, minute);
 }
 
 export default function RemindersPage() {
-  const [prefs, setPrefs] = useState(getReminderPreferences());
+  const [prefs, setPrefs] = useState<ReminderPrefs>(getReminderPreferences());
 
   useEffect(() => {
     setReminderPreferences(prefs);
